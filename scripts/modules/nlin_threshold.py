@@ -10,6 +10,7 @@ from pynlin.utils import nu2lambda
 from scripts.modules.load_fiber_values import load_group_delay, load_dummy_group_delay
 from numpy import polyval
 from pynlin.fiber import *
+from pynlin.pulses import *
 from pynlin.nlin import compute_all_collisions_time_integrals, get_dgd, X0mm_space_integral
 from matplotlib.gridspec import GridSpec
 import json
@@ -87,7 +88,7 @@ for i in modes:
 beta1 = np.array(beta1)
 beta2 = np.array(beta2)
 
-pulse = pynlin.pulses.GaussianPulse(
+pulse = GaussianPulse(
     baud_rate=baud_rate,
     num_symbols=1e2,
     samples_per_symbol=2**5,
@@ -96,13 +97,17 @@ pulse = pynlin.pulses.GaussianPulse(
 
 n_samples_analytic = 500
 n_samples_numeric = 10
-dgd1 = 1e-15
+dgd1 = 1e-16
 dgd2 = 6e-12
 # 6e-9 for our fiber
-dgds_numeric =  np.linspace(dgd1, dgd2, n_samples_numeric)
+dgds_numeric =  np.logspace(np.log10(dgd1), np.log10(dgd2), n_samples_numeric)
 dgds_analytic = np.linspace(dgd1, dgd2, n_samples_analytic)
+
+zwL_numeric = 1 / (pulse.baud_rate * dgds_numeric * dummy_fiber.length) 
+zwL_analytic = 1 / (pulse.baud_rate * dgds_analytic * dummy_fiber.length) 
+
 partial_nlin = np.zeros(n_samples_numeric)
-if True:
+if False:
   for id, dgd in enumerate(dgds_numeric):
       # print(f"DGD: {dgd:10.3e}")
       z, I, m = compute_all_collisions_time_integrals(
@@ -111,26 +116,33 @@ if True:
       X0mm = get_space_integrals(m, z, I)
       partial_nlin[id] = np.sum(X0mm**2)
   np.save("results/partial_nlin.npy", partial_nlin)
-  
+
 partial_nlin = np.load("results/partial_nlin.npy")
-# for each channel, we compute the total number of collisions that
-# needs to be computed for evaluating the total noise on that channel.
 T = 100e-12
 L = dummy_fiber.length
 print(partial_nlin)
 fig = plt.figure(figsize=(4, 3))  # Overall figure size
-plt.plot(dgds_analytic * 1e9, L / (T * dgds_analytic), color='red', label='approximation')
-plt.scatter(dgds_numeric * 1e9, (partial_nlin), color='green', label='numerics')
+analytic_nlin = L / (T * dgds_analytic)
+# plt.plot(  zwL_analytic, analytic_nlin * 1e-30, color='red',   label='approximation')
+# plt.scatter(zwL_numeric, partial_nlin  * 1e-30, color='green', label='numerics', marker="x")
+# plt.xlabel('$z_W/L$')
+# plt.gca().invert_xaxis()  # Inverts the x-axis
+plt.plot(  dgds_analytic*1e12, analytic_nlin * 1e-30, color='red',   label='approximation')
+plt.scatter(dgds_numeric*1e12, partial_nlin  * 1e-30, color='green', label='numerics', marker="x")
+plt.xlabel('DGD [ps/m]')
 plt.legend()
-plt.ylabel('partial NLIN')
-plt.xlabel('DGD (ns/m)')
+plt.yscale('log')
+plt.xscale('log')
+plt.ylabel(r'channel-pair NLIN [km$^2$/ps$^2$]')
 plt.tight_layout()
 plt.savefig(f"media/dispersion/partial_NLIN.png", dpi=dpi)
 
-# fig = plt.figure(figsize=(4, 3))  # Overall figure size
-# plt.plot(dgds_analytic * 1e9, ((L / (T * dgds2))-partial_nlin)/partial_nlin, color='red')
-# plt.legend()
-# plt.ylabel('partial NLIN')
-# plt.xlabel('DGD (ns/m)')
-# plt.tight_layout()
-# plt.savefig(f"media/dispersion/rel_error_of_mecozzi.png", dpi=dpi)
+fig = plt.figure(figsize=(4, 3))  # Overall figure size
+er = ((L/(T*dgds_numeric))-partial_nlin)/partial_nlin
+plt.plot(dgds_numeric*1e12, np.where(er<0.25, er, np.nan), color='red')
+plt.legend()
+plt.ylabel('partial NLIN')
+plt.xlabel('DGD (ps/m)')
+plt.tight_layout()
+plt.xscale('log')
+plt.savefig(f"media/dispersion/rel_error_of_mecozzi.png", dpi=dpi)
