@@ -69,7 +69,7 @@ oi_avg_complete = np.stack((*matrix_zeros, matrix_avg), axis=0)
 # Manual configuration
 power_per_channel_dBm_list = power_dBm_list
 pumping_schemes = ['ct']
-optimize = True
+optimize = False
 profiles = True
 
 
@@ -240,12 +240,13 @@ def ct_solver(power_per_channel_dBm, use_precomputed=False):
         plt.plot(z_plot, 
                    watt2dBm(signal_solution[:, i, :]), color=cmap(i/num_channels))
     plt.legend()
-    plt.grid()
+    plt.grid(False)
     
     flatness = np.max(watt2dBm(signal_solution[-1, :, :])) - watt2dBm(np.min(signal_solution[-1, :, :]))
     print(f"final flatness: {flatness:.2f}")
     # plt.show()
+    
     plt.savefig("media/optimized_profile.pdf")
     return
 
-ct_solver(-30.0)
+ct_solver(-30.0, use_precomputed=True)

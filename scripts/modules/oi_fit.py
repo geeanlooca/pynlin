@@ -19,23 +19,21 @@ oi_avg = np.ndarray((4, 4))
 oi_max = np.zeros_like(oi_avg)
 oi_min = np.zeros_like(oi_avg)
 
-# return starting and ending index of the polarization
-
-"""
-WARN: probably wrong
-"""
 def expression(l1i, l1f, params):
-  l2i=l1i
-  l2f=l1f
-  Lambda = (l1f-l1i)
-  a1, a2, b1, b2, c, x = params
-  integral = Lambda * ((a1+a2)*(l1f**3-l1i**3)/3 + (b1+b2) * (l1f**2-l1i**2)/2) + x * (l1f**2-l1i**2)*(l2f**2-l2i**2)/4 + c * Lambda**2
-  return integral / Lambda**2
+    l2i = l1i
+    l2f = l1f
+    Lambda = (l1f - l1i)
+    a1, a2, b1, b2, c, x = params
+    integral = Lambda * ((a1 + a2) * (l1f**3 - l1i**3) / 3 + (b1 + b2) * (l1f**2 -
+                         l1i**2) / 2) + x * (l1f**2 - l1i**2) * (l2f**2 - l2i**2) / 4 + c * Lambda**2
+    return integral / Lambda**2
+
 
 def polix(f):
     ll = [2, 4, 4, 2]
     st = [0, 2, 6, 10]
     return (st[f], st[f] + ll[f])
+
 
 for i in range(4):
     for j in range(4):
@@ -63,23 +61,25 @@ np.save('oi_fit.npy', oi_fit)
 # ================== copied
 
 for mode in range(1):
-  color = viridis(mode/4)
-  plt.plot(wl, oi_law_fit([wl, wl[1]], *oi_fit[:, mode, mode]), color=color, label="oi_law_fit")
-  # plt.plot(wl, oi_law(wl, wl[1], oi_fit[:, mode, mode]), color=color, label="oi_law")
-  plt.plot(wl, oi[:, 1, mode, mode], color=color, ls=":", label="oi")
-  plt.hlines([oi_max[mode, mode], oi_min[mode, mode]], wl[1], wl[-1], label="max")
-  # plt.hlines(expression(wl[0], wl[-1], oi_fit[:, mode, mode]), wl[1], wl[-1], ls="--", label="analytical mean")
+    color = viridis(mode / 4)
+    plt.plot(wl, oi_law_fit([wl, wl[1]], *oi_fit[:, mode, mode]),
+             color=color, label="oi_law_fit")
+    # plt.plot(wl, oi_law(wl, wl[1], oi_fit[:, mode, mode]), color=color, label="oi_law")
+    plt.plot(wl, oi[:, 1, mode, mode], color=color, ls=":", label="oi")
+    plt.hlines([oi_max[mode, mode], oi_min[mode, mode]], wl[1], wl[-1], label="max")
+    # plt.hlines(expression(wl[0], wl[-1], oi_fit[:, mode, mode]), wl[1], wl[-1], ls="--", label="analytical mean")
 plt.legend()
-plt.show()
+# plt.show()
 
 print("\n\nThis is oi_fit: \n", oi_fit)
 print("\n\nThis is the numerical average: \n", oi_avg)
-print("\n\nThis is the analytical average: \n", expression(wl[0], wl[-1], oi_fit[:, :, :]))
- 
+print("\n\nThis is the analytical average: \n",
+      expression(wl[0], wl[-1], oi_fit[:, :, :]))
+
 # =========
 # PLOTTING
 # =========
-plot = False
+plot = True
 if plot:
     modes = ["01", "11", "21", "02"]
     n_modes = 4
@@ -133,7 +133,7 @@ if plot:
                 # xaxis_ticksuffix = r"$  ",
                 font_size=22
             )
-            fig.write_image('media/freq_dep_' +
+            fig.write_image('media/oi/freq_dep_' +
                             str(modes[i]) + '_' + str(modes[j]) + '.pdf')
             # fig.savefig("test.pdf")
 
