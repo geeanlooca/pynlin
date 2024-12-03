@@ -144,7 +144,7 @@ plt.savefig(f"media/dispersion/collisions_single.png", dpi=dpi)
 
 plt.clf()
 for i in range(len(modes)): 
-  plt.semilogy(freqs * 1e-12, nlin_no_cross[i, :], label=mode_names[i], marker='x')
+  plt.semilogy(freqs * 1e-12, nlin_no_cross[i, :]*1e-30, label=mode_names[i], marker='x')
 plt.xlabel('Frequency (THz)')
 plt.ylabel('NLIN coeff')
 plt.legend()
@@ -154,10 +154,11 @@ plt.savefig(f"media/dispersion/nlin_no_cross.png", dpi=dpi)
 # plt.show()
 
 plt.clf()
+plt.figure(figsize=(4, 3.5))
 for i in range(4):
-    plt.semilogy(freqs * 1e-12, nlin[i, :], label=mode_names[i], marker='x')
-plt.xlabel('Frequency (THz)')
-plt.ylabel('NLIN coeff')
+    plt.semilogy(freqs * 1e-12, nlin[i, :] * 1e-30, label=mode_names[i], marker='o', ms=2.5, lw=1)
+plt.xlabel(r'$f \; [\mathrm{THz}]$')
+plt.ylabel(r'$\mathrm{NLIN} \; [\mathrm{km}^2/\mathrm{ps}^{2}]$')
 plt.legend()
 plt.grid(grid)
 plt.tight_layout()
@@ -165,9 +166,9 @@ plt.savefig(f"media/dispersion/nlin.png", dpi=dpi)
 # plt.show()
 
 plt.clf()
-plt.figure(figsize=(4.6, 4))
+plt.figure(figsize=(4, 3.5))
 for i in range(4):
-    plt.plot(freqs * 1e-12, beta1[i, :] * 1e9, label=mode_names[i], marker="+", markersize=5)
+    plt.plot(freqs * 1e-12, beta1[i, :] * 1e9, label=mode_names[i], marker="o", ms=2, lw=1)
 minn = np.min(beta1)
 maxx = np.max(beta1)
 
@@ -175,17 +176,17 @@ maxx = np.max(beta1)
 # plt.axvline(196.07, color="gray", ls="dashed", lw=0.5)
 # plt.axvline(191.69, color="gray", ls="dashed", lw=0.5)
 
-plt.axvline(190.9, color="red", ls="dotted", lw=1.5)
-plt.axvline(200.9, color="red", ls="dotted", lw=1.5)
+plt.axvline(190.9, color="grey", ls="--", lw=1.5)
+plt.axvline(200.9, color="grey", ls="--", lw=1.5)
 
 # # plt.xticks([185, 193, 196, 206])
 # freq_boundaries = [189, 192.7, 197, 206]
 # for i, label in enumerate(['L', 'C', 'S', 'E']):
 #     plt.text(freq_boundaries[i], 4.8924, label, ha='center', va='bottom')
     
-plt.xlabel('Frequency (THz)')
-plt.ylabel(r'$\beta_1$ (ns/m)')
-plt.legend()
+plt.xlabel(r'$f \; [\mathrm{THz}]$')
+plt.ylabel(r'$\beta_1 [\mathrm{ns}/\mathrm{m}]$')
+# plt.legend()
 # plt.grid(grid)
 plt.tight_layout()
 plt.savefig(f"media/dispersion/beta1.png", dpi=dpi)
@@ -195,7 +196,7 @@ plt.figure(figsize=(4.6, 4))
 
 for i in range(4):
     plt.plot(freqs * 1e-12, beta2[i, :] * 1e27, label=mode_names[i])
-plt.xlabel('Frequency (THz)')
+plt.xlabel(r'$f \; [\mathrm{THz}]$')
 plt.ylabel(r'$\beta_2$ (ps$^2$/km)')
 plt.legend()
 # plt.grid(grid)
@@ -259,7 +260,7 @@ plt.figure(figsize=(4.6, 4))
 for i in range(4):
     plt.plot(freqs * 1e12, (beta1[i, :] - beta1[1, :])
              * 1e12, label=mode_names[i])
-plt.xlabel('Frequency (THz)')
+plt.xlabel(r'$f \; [\mathrm{THz}]$')
 plt.ylabel(r'$\Delta\beta_1$ (ps/m)')
 plt.legend()
 plt.grid(grid)

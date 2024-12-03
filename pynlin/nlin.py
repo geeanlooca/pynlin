@@ -209,8 +209,8 @@ def compute_all_collisions_time_integrals(
     margin = 10
     if isinstance(pulse, NyquistPulse):
       print("\033[91m warn: \033[0m The pulse is Nyquist (long-tailed): overriding the number of points!")
-      n_z_points = 5000
-      margin = 100
+      n_z_points = 500
+      margin = 0
   
     for m in m_list:
         print("_"*40)

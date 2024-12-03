@@ -11,7 +11,7 @@ from scripts.modules.load_fiber_values import load_group_delay, load_dummy_group
 from numpy import polyval
 from pynlin.fiber import *
 from pynlin.pulses import *
-from pynlin.nlin import compute_all_collisions_time_integrals, get_dgd, X0mm_space_integral
+from pynlin.nlin import compute_all_collisions_time_integrals, get_dgd, X0mm_space_integral, get_gvd
 from matplotlib.gridspec import GridSpec
 import json
 rc('text', usetex=True)
@@ -58,7 +58,7 @@ def get_space_integrals(m, z, I):
     return X0mm
 
 
-beta1_params = load_dummy_group_delay()
+beta1_params = load_group_delay()
 
 dpi = 300
 grid = False
@@ -88,47 +88,87 @@ for i in modes:
 beta1 = np.array(beta1)
 beta2 = np.array(beta2)
 
-pulse = GaussianPulse(
-    baud_rate=baud_rate,
-    num_symbols=1e2,
-    samples_per_symbol=2**5,
-    rolloff=0.0,
-)
+for px in [1, 0]:
+  if px == 0:
+    pulse = GaussianPulse(
+        baud_rate=baud_rate,
+        num_symbols=1e2,
+        samples_per_symbol=2**5,
+        rolloff=0.0,
+    )
+  else:
+    pulse = NyquistPulse(
+        baud_rate=baud_rate,
+        num_symbols=1e2,
+        samples_per_symbol=2**5,
+        rolloff=0.0,
+    )
+    
+  n_samples_analytic = 500
+  dgd1 = 1e-16
+  if px == 0:
+    dgd2 = 6e-12
+    n_samples_numeric = 10
+  else:
+    dgd2 = 1e-15
+    n_samples_numeric = 3
+  # 6e-9 for our fiber
+  dgds_numeric = np.logspace(np.log10(dgd1), np.log10(dgd2), n_samples_numeric)
+  dgds_analytic = np.linspace(dgd1, dgd2, n_samples_analytic)
 
-n_samples_analytic = 500
-n_samples_numeric = 10
-dgd1 = 1e-16
-dgd2 = 6e-12
-# 6e-9 for our fiber
-dgds_numeric =  np.logspace(np.log10(dgd1), np.log10(dgd2), n_samples_numeric)
-dgds_analytic = np.linspace(dgd1, dgd2, n_samples_analytic)
+  zwL_numeric = 1 / (pulse.baud_rate * dgds_numeric * dummy_fiber.length)
+  zwL_analytic = 1 / (pulse.baud_rate * dgds_analytic * dummy_fiber.length)
 
-zwL_numeric = 1 / (pulse.baud_rate * dgds_numeric * dummy_fiber.length) 
-zwL_analytic = 1 / (pulse.baud_rate * dgds_analytic * dummy_fiber.length) 
+  partial_nlin = np.zeros(n_samples_numeric)
+  a_chan = (-1, -10)
+  b_chan = (-1, -100)
+  if False:
+      for id, dgd in enumerate(dgds_numeric):
+          # print(f"DGD: {dgd:10.3e}")
+          z, I, m = compute_all_collisions_time_integrals(
+              a_chan, b_chan, dummy_fiber, wdm, pulse, dgd)
+          # space integrals
+          X0mm = get_space_integrals(m, z, I)
+          partial_nlin[id] = np.sum(X0mm**2)
+      if px == 0:
+        np.save("results/partial_nlin_gaussian.npy", partial_nlin)
+      else:
+        np.save("results/partial_nlin_nyquist.npy", partial_nlin)
 
-partial_nlin = np.zeros(n_samples_numeric)
-if False:
-  for id, dgd in enumerate(dgds_numeric):
-      # print(f"DGD: {dgd:10.3e}")
-      z, I, m = compute_all_collisions_time_integrals(
-          (-1, -1), (-1, -1), dummy_fiber, wdm, pulse, dgd)
-      # space integrals
-      X0mm = get_space_integrals(m, z, I)
-      partial_nlin[id] = np.sum(X0mm**2)
-  np.save("results/partial_nlin.npy", partial_nlin)
-
-partial_nlin = np.load("results/partial_nlin.npy")
 T = 100e-12
 L = dummy_fiber.length
-print(partial_nlin)
+LDA = - T**2 / get_gvd(a_chan, dummy_fiber, wdm)
+LDB = - T**2 / get_gvd(b_chan, dummy_fiber, wdm)
+LD_eff = np.sqrt(2) * LDA * LDB / (LDA**2 + LDB**2)
+print(LD_eff)
+partial_nlin_nyquist = np.load("results/partial_nlin_nyquist.npy")
+partial_nlin_gaussian = np.load("results/partial_nlin_gaussian.npy")
+LD_eff = LDA
+print(f"L/LD_eff = {L/LDA:.2e}, LDA = {LDA:.2e}, LDB = {LDB:.2e}")
+# print(partial_nlin)
 fig = plt.figure(figsize=(4, 3))  # Overall figure size
 analytic_nlin = L / (T * dgds_analytic)
 # plt.plot(  zwL_analytic, analytic_nlin * 1e-30, color='red',   label='approximation')
 # plt.scatter(zwL_numeric, partial_nlin  * 1e-30, color='green', label='numerics', marker="x")
 # plt.xlabel('$z_W/L$')
 # plt.gca().invert_xaxis()  # Inverts the x-axis
-plt.plot(  dgds_analytic*1e12, analytic_nlin * 1e-30, color='red',   label='approximation')
-plt.scatter(dgds_numeric*1e12, partial_nlin  * 1e-30, color='green', label='numerics', marker="x")
+dgd2 = 6e-12
+n_samples_numeric = 10
+dgds_numeric_g = np.logspace(np.log10(dgd1), np.log10(dgd2), n_samples_numeric)
+dgd2 = 1e-15
+n_samples_numeric = 3
+dgds_numeric_n = np.logspace(np.log10(dgd1), np.log10(dgd2), n_samples_numeric)
+
+plt.plot(dgds_analytic * 1e12, analytic_nlin *
+         1e-30, color='red', label='Antonio')
+plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) * (LD_eff / (T * np.sqrt(2 * np.pi))
+         * np.arcsinh(L / LD_eff))**2 * 1e-30, color='blue', label='Fra')
+plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) * (L / T * 1/(6*np.pi**2))**2
+         * 1e-30, color='blue', ls="--", label='Marco')
+plt.scatter(dgds_numeric_g * 1e12, partial_nlin_gaussian * 1e-30,
+            color='green', label='Gaussian', marker="x")
+plt.scatter(dgds_numeric_n * 1e12, partial_nlin_nyquist * 1e-30,
+            color='grey', label='Nyquist', marker="x
 plt.xlabel('DGD [ps/m]')
 plt.legend()
 plt.yscale('log')
@@ -138,8 +178,8 @@ plt.tight_layout()
 plt.savefig(f"media/dispersion/partial_NLIN.png", dpi=dpi)
 
 fig = plt.figure(figsize=(4, 3))  # Overall figure size
-er = ((L/(T*dgds_numeric))-partial_nlin)/partial_nlin
-plt.plot(dgds_numeric*1e12, np.where(er<0.25, er, np.nan), color='red')
+er = ((L / (T * dgds_numeric)) - partial_nlin) / partial_nlin
+plt.plot(dgds_numeric * 1e12, np.where(er < 0.25, er, np.nan), color='red')
 plt.legend()
 plt.ylabel('partial NLIN')
 plt.xlabel('DGD (ps/m)')
