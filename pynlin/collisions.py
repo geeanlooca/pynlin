@@ -97,5 +97,8 @@ def get_z_walkoff(
   dgd = None):
   if dgd is None:
     dgd = get_dgd(a_chan, b_chan, fiber, wdm)
-  print(f"DGDDDDD : {dgd:.3e}")
-  return np.abs(1 / (pulse.baud_rate * dgd))
+  # print(f"DGDDDDD : {dgd:.3e}")
+  if dgd != 0:
+    return np.abs(1 / (pulse.baud_rate * dgd))
+  else:
+    return 1e50 # very large number

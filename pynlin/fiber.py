@@ -56,7 +56,7 @@ class SMFiber(Fiber):
         losses=None,
         raman_coefficient=7e-14,
         effective_area=80e-12,
-        beta2=20 * 1e-24 / 1e3,
+        beta2 = 20 * 1e-24 / 1e3,
         gamma=1.3 * 1e-3,
         length=100e3
     ):

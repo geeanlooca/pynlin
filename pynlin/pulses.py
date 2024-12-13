@@ -3,7 +3,9 @@ from typing import Tuple
 
 import numpy as np
 import scipy.integrate
-
+# from pynlin.fiber import Fiber
+# from pynlin.wdm import WDM
+# from pynlin.collisions import get_gvd
 
 class Pulse(ABC):
     def __init__(
