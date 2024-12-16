@@ -129,6 +129,7 @@ def compute_all_collisions_time_integrals(
     use_multiprocessing: bool = True,
     partial_collisions_margin: int = 10,
     speedup_pulse_propagation=True,
+    info = False
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the integrals for all the collisions for the specified pair of
     channels.
@@ -155,14 +156,15 @@ def compute_all_collisions_time_integrals(
     )[::-1]
     z_axis_list = []
     z_walkoff = get_z_walkoff(fiber, wdm, a_chan, b_chan, pulse, dgd=dgd)
-    print("==============")
-    if dgd is None:
-      print(
-          f"a: {a_chan}, b: {b_chan}, a_freq:{f_grid[a_chan[1]]:.5e}, b_freq:{f_grid[b_chan[1]]:.5e}")
-      print(f"dgd: {get_dgd(a_chan, b_chan, fiber, wdm):.3e}, z_w: {z_walkoff:.3e}, lenght/z_w:{fiber.length/z_walkoff:.5e}")
-    else:
-      print(f"set dgd:{dgd:.2e}, z_walkoff/L = {z_walkoff/fiber.length}")
-    print("==============")
+    if info:
+      print("==============")
+      if dgd is None:
+        print(
+            f"a: {a_chan}, b: {b_chan}, a_freq:{f_grid[a_chan[1]]:.5e}, b_freq:{f_grid[b_chan[1]]:.5e}")
+        print(f"dgd: {get_dgd(a_chan, b_chan, fiber, wdm):.3e}, z_w: {z_walkoff:.3e}, lenght/z_w:{fiber.length/z_walkoff:.5e}")
+      else:
+        print(f"set dgd:{dgd:.2e}, z_walkoff/L = {z_walkoff/fiber.length}")
+      print("==============")
 
     n_rough_grid = 50
     spacing = get_frequency_spacing(a_chan, b_chan, wdm)
@@ -190,9 +192,11 @@ def compute_all_collisions_time_integrals(
       n_z_points = 200
       margin = 10
   
-    print("Setting the z integration ranges...")
+    if info:
+      print("Setting the z integration ranges...")
     for m in m_list:
-        print(f"  m={m:5d} ", end="")
+        if info: 
+          print(f"  m={m:5d} ", end="")
         z_m = get_collision_location(m, fiber, wdm, a_chan, b_chan, pulse, dgd)
         z_min = z_m - (z_walkoff / 2 * margin)
         z_max = z_m + (z_walkoff / 2 * margin)
@@ -223,19 +227,20 @@ def compute_all_collisions_time_integrals(
             z_axis_list.append(np.linspace(0, fiber.length, n_z_points))
         else:
             z_axis_list.append(np.linspace(z_min, z_max, n_z_points))
-        
-        print(f"    z_axis = ({z_axis_list[-1][0]:.2e}, {z_axis_list[-1][-1]:.2e}, {len(z_axis_list[-1]):5d})")
+        if info:
+          print(f"    z_axis = ({z_axis_list[-1][0]:.2e}, {z_axis_list[-1][-1]:.2e}, {len(z_axis_list[-1]):5d})")
     if pulse.num_symbols != n_z_points:
       print("\033[91m warn: \033[0m overriding the pulse number of samples!")
       pulse.num_symbols = n_z_points
-      
-    print("  Done.")
+    if info:
+      print("  Done.")
     # build a partial function otherwise multiprocessing
     # complains about not being able to pickle stuff
     partial_function = functools.partial(
         m_th_time_integral, pulse, fiber, wdm, a_chan, b_chan, dgd, gvd
     )
-    print("Computing the integrals for every m...")
+    if info:
+      print("Computing the integrals for every m...")
     start = time.time()
     if use_multiprocessing:
         # def partial_function(m, z): return m_th_time_integral(pulse, fiber, wdm, a_chan, b_chan, m, z)
@@ -247,7 +252,8 @@ def compute_all_collisions_time_integrals(
             partial_function, m_list, z_axis_list, leave=False, chunksize=1, max_workers=1
         )
     end = time.time()    
-    print(f"  Done in {(end-start)*1e3:.0e} ms.")
+    if info: 
+      print(f"  Done in {(end-start)*1e3:.0e} ms.")
     
     # convert the list of arrays in a 2d array, since the shape is the same
     z_axis_list_2d = np.stack(z_axis_list)
@@ -400,21 +406,20 @@ def m_th_time_integral_general(
     return i_list
 
 def X0mm_space_integral(
-        z: np.ndarray, time_integrals, amplification_function: np.ndarray = None, axis=-1) -> np.ndarray:
+        z: np.ndarray, time_integrals, amplification_function = None, axis=-1) -> np.ndarray:
     """Compute the X0mm XPM coefficients specifying the inner time integral as
     input.
 
     Useful to compare different amplification schemes without re-
     computing the time integral.
     """
-    if type(amplification_function) is not np.ndarray:
+    if callable(amplification_function):
+      X = scipy.integrate.trapezoid(time_integrals * amplification_function(z), z, axis=axis)
+    else:
         # if the amplification function is not supplied, assume perfect distributed
         # amplification
         amplification_function = np.ones_like(z)
-    else:
-        print(
-            '\033[2;31;43m WARN \033[0;0m need to implement scaling of f(z) w.r.t. the given z axis.')
-    X = scipy.integrate.trapezoid(time_integrals * amplification_function, z, axis=axis)
+        X = scipy.integrate.trapezoid(time_integrals * amplification_function, z, axis=axis)
     return X
 
 

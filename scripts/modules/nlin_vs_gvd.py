@@ -78,7 +78,6 @@ dummy_fiber = MMFiber(
     length=100e3,
     n_modes=4
 )
-
 beta1 = np.zeros((len(modes), len(freqs)))
 for i in modes:
     beta1[i, :] = dummy_fiber.group_delay.evaluate_beta1(i, freqs)
@@ -88,62 +87,70 @@ for i in modes:
 beta1 = np.array(beta1)
 beta2 = np.array(beta2)
 
+px = 0
+n_samples = 10
+n_samples_cont = 500
+l_ld =      np.logspace(-2, 2, n_samples)
+l_ld_cont = np.logspace(-2, 2, n_samples_cont)
+T = 100e-12
+L = dummy_fiber.length
+gvds = - T**2 / (L / l_ld) 
 dgd = 1e-50
-gvd = -1e-30
-
-print(f"Computing the channel-pair NLIN coefficient. DGD = {dgd*1e12:.1e} ps/m, GVD = {gvd*1e27:.1e} ps^2/km ")
-
-if False:
-  pulse = GaussianPulse(
-      baud_rate=baud_rate,
-      num_symbols=1e2,
-      samples_per_symbol=2**5,
-      rolloff=0.0,
-  )
-else:
-  pulse = NyquistPulse(
-      baud_rate=baud_rate,
-      num_symbols=1e3,
-      samples_per_symbol=2**5,
-      rolloff=0.0,
-  )
-
-zwL = 1 / (pulse.baud_rate * dgd * dummy_fiber.length)
-
-
-def nlin_numerics(dgd, gvd):
+print(gvds)
+for px in [0]:
+  if px == 0:
+    pulse = GaussianPulse(
+        baud_rate=baud_rate,
+        num_symbols=1e2,
+        samples_per_symbol=2**5,
+        rolloff=0.0,
+    )
+  else:
+    pulse = NyquistPulse(
+        baud_rate=baud_rate,
+        num_symbols=1e3,
+        samples_per_symbol=2**5,
+        rolloff=0.0,
+    )
+    
+  # 6e-9 for our fiber
+  partial_nlin = np.zeros(n_samples)
   a_chan = (-1, -10)
   b_chan = (-1, -100)
-  z, I, m = compute_all_collisions_time_integrals(a_chan, b_chan, dummy_fiber, wdm, pulse, dgd, gvd)
-  X0mm = get_space_integrals(m, z, I) 
-  print(np.abs(X0mm)**2)
-  return np.sum(np.abs(X0mm)**2)
+  if True:
+      for ig, gvd in enumerate(gvds):
+          z, I, m = compute_all_collisions_time_integrals(
+              a_chan, b_chan, dummy_fiber, wdm, pulse, dgd, gvd)
+          # space integrals
+          X0mm = get_space_integrals(m, z, I)
+          partial_nlin[ig] = np.sum(X0mm**2)
+      if px == 0:
+        np.save("results/partial_nlin_gaussian_gvd.npy", partial_nlin)
+      else:
+        np.save("results/partial_nlin_nyquist_gvd.npy", partial_nlin)
 
-T = pulse.T0
-L = dummy_fiber.length
-# LD = - T**2 / gvd
 
-def antonio(dgd, gvd):
- return L / (T * dgd)
+# partial_nlin_nyquist = np.load("results/partial_nlin_nyquist.npy")
+# partial_nlin_gaussian = np.load("results/partial_nlin_gaussian.npy")
 
-def marco(dgd, gvd):
-  return 0.406 * 1e30
+# def n_plus(l, ld, t):
+  # return (ld/t)**2 * 1/(2 * np.sqrt(np.pi)) * np.arcsinh(l/ld) * np.exp(-1/((1+(l/ld)**2)))
+def n_plus(l, ld, t):
+  return (ld/t)**2 * 1/(2 * np.pi) * np.arcsinh(l/ld)**2 * np.sqrt(np.pi) * np.sqrt(1+(l/ld)**2)
 
-def fra_lesser(dgd, gvd):
-  if gvd != 0:
-    LD = - T**2 / gvd
-    return (LD/ (T * np.sqrt(2 * np.pi))* np.arcsinh(L / LD))**2
-  else:
-    return np.sqrt(np.pi) * (L/(np.sqrt(2*np.pi)*T))**2
-    # return (L/(T)*np.sum(np.exp(-np.linspace(-100, 100, 201)**2)/2))**2
-    
-def fra_novel(dgd, gvd):
-  return (0.877/(np.sqrt(2* np.pi)) * L / T)**2
-  
-def fra_greater(dgd, gvd):
-  return fra_lesser(dgd, gvd) * 6.3
 
-if gvd != 0:
-    LD = - T**2 / gvd
-    print(f"L/LD = zL = {L/LD:.3e}")
-print(f"DGD = 0. num = {nlin_numerics(1e-20, gvd):.3e}, fra < = {fra_lesser(0, gvd):.3e}, fra novel = {fra_novel(0, gvd):.3e}")
+fig = plt.figure(figsize=(5, 3.5))  
+partial_B2g = (np.load("results/partial_nlin_gaussian_gvd.npy"))
+print(partial_B2g)
+plt.scatter(l_ld, partial_B2g * 1e-30, color="blue", marker="x")
+# partial_B2n = (np.load("results/partial_nlin_nyquist_gvd.npy"))
+# plt.scatter(gvds * 1e12, partial_B2n * 1e-30,
+#             label='Nyq.'+str(gvd), color="green", marker="x")
+plt.plot(l_ld_cont, n_plus(L, L/l_ld_cont, T) * 1e-30, color="blue", label=r"$N^>$")
+plt.xlabel(r'$L/L_D$')
+plt.legend()
+plt.yscale('log')
+plt.xscale('log')
+plt.ylabel(r'channel-pair NLIN [km$^2$/ps$^2$]')
+plt.tight_layout()
+plt.savefig(f"media/dispersion/partial_NLIN_gvd.png", dpi=dpi)
