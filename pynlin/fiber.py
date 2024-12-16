@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from numpy import polyval
-from pynlin.utils import oi_polynomial_expansion
+from pynlin.utils import oi_polynomial_expansion, oi_law
 import numpy as np
 import torch
+
 
 
 class Fiber:
@@ -183,7 +184,23 @@ class MMFiber(Fiber):
         self.torch_oi = OICoefficients(self.n_modes, overlap_integrals)
         self.group_delay = GroupDelay(self.n_modes, group_delay)
         self.mode_names = mode_names
-        
+    
+    def evaluate_oi(self, i, j, wavelength_i, wavelength_j):
+        # original data were in um
+        return oi_law(wavelength_i, wavelength_j, self.overlap_integrals[:, i, j])
+      
+    def get_oi_matrix(self, modes, wavelengths):
+      M = len(modes)
+      W = len(wavelengths)
+      mat = np.zeros((M*W, M*W))
+      mat[:, :]
+      for n in range(M):
+        for m in range(M):
+          for wn in range(W):
+            for wm in range(W):
+              mat[n+(wn*M), m+(wm*M)] = self.evaluate_oi(n, m, wavelengths[wn], wavelengths[wm])
+      return mat
+     
     def loss_profile(self, wavelengths):
         """Get the fiber losses (in dB/m) at the specified wavelengths (in
         meters)."""

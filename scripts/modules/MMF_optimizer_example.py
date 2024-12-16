@@ -28,9 +28,9 @@ plt.rcParams.update({
 import logging
 logging.basicConfig(filename='MMF_optimizer.log', encoding='utf-8', level=logging.INFO)
 log = logging.getLogger(__name__)
-log.debug("starting to load sim_config.json")
+log.debug("starting to load config")
 
-f = open("./scripts/sim_config.json")
+f = open("./scripts/s+c+l_config.json")
 data = json.load(f)
 # print(data)
 dispersion = data["dispersion"]
@@ -74,7 +74,7 @@ profiles = True
 
 
 fiber_length = fiber_lengths[0]
-gain_dB = -5
+gain_dB = 0.0
 power_per_pump = dBm2watt(0)
 
 log.warning("end loading of parameters")
@@ -104,7 +104,7 @@ actual_fiber = pynlin.fiber.MMFiber(
 wdm = pynlin.wdm.WDM(
     spacing=channel_spacing,
     num_channels=num_channels,
-    center_frequency=190e12
+    center_frequency=center_frequency
 )
 
 # comute the collisions between the two furthest WDM channels
@@ -148,7 +148,8 @@ pbar = tqdm.tqdm(power_per_channel_dBm_list, leave=False)
 pbar.set_description(pbar_description)
 
 
-def ct_solver(power_per_channel_dBm, use_precomputed=False):
+def ct_solver(power_per_channel_dBm, gain_dB, use_precomputed=False):
+    print(f"> Running optimization for Pin = {power_per_channel_dBm:.2e} dBm, and gain = {gain_dB:.2e} dB.\n")
     if use_precomputed and os.path.exists(results_path_ct + "pump_solution_ct_power" + str(power_per_channel_dBm) + "_opt_gain_" + str(gain_dB) + ".npy"):
         print("Result already computed for power: ",
               power_per_channel_dBm, " and gain: ", gain_dB)
@@ -159,7 +160,7 @@ def ct_solver(power_per_channel_dBm, use_precomputed=False):
     num_pumps = num_only_ct_pumps
     # initial_pump_frequencies = np.linspace(pump_band_a, pump_band_b, num_pumps)
     # BROMAGE
-    initial_pump_frequencies = np.array(lambda2nu([1447e-9, 1467e-9, 1485e-9, 1515e-9]))
+    initial_pump_frequencies = np.array(lambda2nu([1414e-9, 1433e-9, 1452e-9, 1483e-9]))
     power_per_channel = dBm2watt(power_per_channel_dBm)
     signal_wavelengths = wdm.wavelength_grid()
     initial_pump_wavelengths = nu2lambda(initial_pump_frequencies[:num_pumps])
@@ -191,11 +192,16 @@ def ct_solver(power_per_channel_dBm, use_precomputed=False):
         target_spectrum=target_spectrum,
         epochs=1000,
         learning_rate=learning_rate,
-        lock_wavelengths=200,
+        lock_wavelengths=20,
         )
-    print(pump_powers)
+    np.save("results/opt_pump_wavelengths.npy", pump_wavelengths)
+    np.save("results/opt_pump_powers.npy", pump_powers)
+    
+    pump_wavelengths = np.load("results/opt_pump_wavelengths.npy")
+    pump_powers = np.load("results/opt_pump_powers.npy")
     amplifier = NumpyMMFRamanAmplifier(fiber)
-
+    # pump_powers = dBm2watt(np.array([-18.71922,   -18.87918,    -6.3320084,  -8.065788, -22.612919,  -20.080292,   -2.6733246,  -4.7116127, -21.083038,  -13.93404,     0.2796955,  -2.897686, -33.404003,   -8.78035,    10.958944,    8.671858 ]))
+    # pump_wavelengths = np.array([1.4458114e-06, 1.4645236e-06, 1.4838355e-06, 1.5133061e-06])
     print("\n=========== results ===================")
     print("Pump powers")
     print(watt2dBm(pump_powers.reshape((num_pumps, num_modes))))
@@ -208,6 +214,7 @@ def ct_solver(power_per_channel_dBm, use_precomputed=False):
     print("Initial pump wavelenghts")
     print(initial_pump_wavelengths)
     print("=========== end ===================\n\n")
+
     
     print("WARN: converting the inlined pump_powers into a matrix")
     pump_powers = pump_powers.reshape((num_pumps, num_modes))
@@ -221,18 +228,18 @@ def ct_solver(power_per_channel_dBm, use_precomputed=False):
         counterpumping=True,
         reference_bandwidth=ref_bandwidth
     )
-    
+    np.save("results/signal_power.npy", signal_solution)
     # fixed mode
     plt.clf()
     cmap = viridis
     z_plot = np.linspace(0, fiber_length, len(pump_solution[:, 0, 0])) * 1e-3
-    for i in range(num_pumps):
-      if i ==1:
-        plt.plot(z_plot,
-                 watt2dBm(pump_solution[:, i, :]), label="pump",  color=cmap(i/num_pumps),ls="--")
-      else:
-        plt.plot(z_plot, 
-                 watt2dBm(pump_solution[:, i, :]), color=cmap(i/num_pumps),ls="--")
+    # for i in range(num_pumps):
+    #   if i ==1:
+    #     plt.plot(z_plot,
+    #              watt2dBm(pump_solution[:, i, :]), label="pump",  color=cmap(i/num_pumps),ls="--")
+    #   else:
+    #     plt.plot(z_plot, 
+    #              watt2dBm(pump_solution[:, i, :]), color=cmap(i/num_pumps),ls="--")
     for i in range(num_channels):
       if i==1:
         plt.plot(z_plot, watt2dBm(signal_solution[:, i, :]),  color=cmap(i/num_channels),label="signal")
@@ -247,6 +254,15 @@ def ct_solver(power_per_channel_dBm, use_precomputed=False):
     # plt.show()
     
     plt.savefig("media/optimized_profile.pdf")
+    
+    plt.clf()
+    plt.figure(figsize=(4, 3))
+    for i in range(4):
+      plt.plot(signal_wavelengths*1e6, watt2dBm(signal_solution[-1, :, i]) + 30)
+    plt.xlabel(r"Channel Wavelength [$\mu$ m]")
+    plt.ylabel("Gain [dB]")
+    plt.tight_layout()
+    plt.savefig("media/flatness.pdf")
     return
 
-ct_solver(-30.0, use_precomputed=True)
+ct_solver(-30.0, gain_dB, use_precomputed=True)

@@ -17,6 +17,7 @@ from pynlin.utils import (
     dBm2watt,
     watt2dBm,
     wavelength_to_frequency,
+    oi_law
 )
 from scipy.constants import Boltzmann as kB
 from scipy.constants import Planck as h_planck
@@ -635,7 +636,7 @@ class MMFRamanAmplifier(RamanAmplifier):
         num_pumps = pump_power.shape[0]
 
         total_wavelengths = num_signals + num_pumps
-        num_modes = fiber.modes
+        num_modes = fiber.n_modes
         total_signals = total_wavelengths
         pump_power_ = pump_power.reshape((num_modes * num_pumps))
         signal_power_ = signal_power.reshape((num_modes * num_signals))
@@ -654,7 +655,7 @@ class MMFRamanAmplifier(RamanAmplifier):
         losses_ = polyval(loss_coeffs, wavelengths)
 
         losses_linear = alpha_to_linear(losses_)
-        losses_linear = np.repeat(losses_linear, fiber.modes)
+        losses_linear = np.repeat(losses_linear, fiber.n_modes)
 
         # Compute the frequency shifts for each signal
         frequency_shifts = np.zeros((total_wavelengths, total_wavelengths))
@@ -675,14 +676,15 @@ class MMFRamanAmplifier(RamanAmplifier):
         freqs = np.expand_dims(frequencies, axis=-1)
         freq_scaling = np.maximum(1, freqs * (1 / freqs.T))
 
-        mode_list = np.array(range(fiber.modes))
+        mode_list = np.array(range(fiber.n_modes))
         # change the order of creation
+        
         oi = fiber.get_oi_matrix(mode_list, wavelengths)
         
         gain_matrix = freq_scaling * gains
 
-        gain_matrix = gain_matrix.repeat(fiber.modes, axis=0).repeat(
-            fiber.modes, axis=1
+        gain_matrix = gain_matrix.repeat(fiber.n_modes, axis=0).repeat(
+            fiber.n_modes, axis=1
         )
 
         gains_mmf = gain_matrix * oi
@@ -690,10 +692,10 @@ class MMFRamanAmplifier(RamanAmplifier):
         np.save("np_gains.npy", frequencies)
         if not ase:
             if direction is None:
-                direction = np.ones((total_wavelengths * fiber.modes,))
+                direction = np.ones((total_wavelengths * fiber.n_modes,))
 
             if counterpumping or shooting:
-                direction[: num_pumps * fiber.modes] = -1
+                direction[: num_pumps * fiber.n_modes] = -1
 
             if not shooting:
                 sol = scipy.integrate.odeint(
@@ -702,13 +704,13 @@ class MMFRamanAmplifier(RamanAmplifier):
                     z,
                     args=(losses_linear, gains_mmf, direction),
                 )
-                sol = sol.reshape((len(z), total_signals, fiber.modes))
+                sol = sol.reshape((len(z), total_signals, fiber.n_modes))
                 pump_solution = sol[:, :num_pumps, :]
                 signal_solution = sol[:, num_pumps:, :]
             else:
                 # SHOOTING METHOD
 
-                pump_losses = losses_linear[: num_pumps * fiber.modes]
+                pump_losses = losses_linear[: num_pumps * fiber.n_modes]
 
                 if initial_guesses is None:
                     initial_guesses = pump_power_ * np.exp(-z[-1] * pump_losses) / 10
@@ -741,7 +743,7 @@ class MMFRamanAmplifier(RamanAmplifier):
                         args=(losses_linear, gains_mmf, direction),
                     )
 
-                    sol = sol.reshape((len(z), total_signals, fiber.modes))
+                    sol = sol.reshape((len(z), total_signals, fiber.n_modes))
 
                     pump_solution = sol[-1, :num_pumps, :].flatten()
 
@@ -758,7 +760,7 @@ class MMFRamanAmplifier(RamanAmplifier):
 
                     return cost
 
-                # bounds = [(0, None) for _ in range(num_pumps * fiber.modes)]
+                # bounds = [(0, None) for _ in range(num_pumps * fiber.n_modes)]
 
                 try:
                     result = scipy.optimize.minimize(
@@ -788,20 +790,20 @@ class MMFRamanAmplifier(RamanAmplifier):
                     z,
                     args=(losses_linear, gains_mmf, direction),
                 )
-                sol = sol.reshape((len(z), total_signals, fiber.modes))
+                sol = sol.reshape((len(z), total_signals, fiber.n_modes))
 
                 pump_solution = sol[:, :num_pumps, :]
                 signal_solution = sol[:, num_pumps:, :]
             return pump_solution, signal_solution
         else:
-            direction = np.ones(((total_wavelengths + num_signals) * fiber.modes,))
+            direction = np.ones(((total_wavelengths + num_signals) * fiber.n_modes,))
 
             # Compute the phonon occupancy factor
             Hinv = np.exp(h_planck * np.abs(frequency_shifts) / (kB * temperature)) - 1
 
             eta = 1 + 1 / Hinv
             np.fill_diagonal(eta, 0)
-            eta = np.repeat(np.repeat(eta, fiber.modes, axis=0), fiber.modes, axis=1)
+            eta = np.repeat(np.repeat(eta, fiber.n_modes, axis=0), fiber.n_modes, axis=1)
 
             # Compute the new Raman gain matrix
             gain_matrix_ase = eta * gains_mmf
@@ -816,14 +818,14 @@ class MMFRamanAmplifier(RamanAmplifier):
             reference_bandwidth_hz = np.abs(f_a - f_b)
 
             if counterpumping or shooting:
-                direction[: num_pumps * fiber.modes] = -1
+                direction[: num_pumps * fiber.n_modes] = -1
 
             # Initial conditions, ase power must be 0 at z=0
-            input_power_ase = np.zeros((input_power.size + num_signals * fiber.modes,))
+            input_power_ase = np.zeros((input_power.size + num_signals * fiber.n_modes,))
             input_power_ase[: input_power.size] = input_power
 
             signal_frequencies = wavelength_to_frequency(signal_wavelength)
-            ase_frequencies = np.repeat(signal_frequencies, fiber.modes)
+            ase_frequencies = np.repeat(signal_frequencies, fiber.n_modes)
 
             sol = scipy.integrate.odeint(
                 MMFRamanAmplifier.raman_ode_with_ase,
@@ -838,11 +840,11 @@ class MMFRamanAmplifier(RamanAmplifier):
                     direction,
                     num_signals,
                     num_pumps,
-                    fiber.modes,
+                    fiber.n_modes,
                 ),
             )
 
-            sol = sol.reshape((len(z), total_signals + num_signals, fiber.modes))
+            sol = sol.reshape((len(z), total_signals + num_signals, fiber.n_modes))
             power_solution = sol[:, :total_signals, :]
             pump_solution = power_solution[:, :num_pumps, :]
             signal_solution = power_solution[:, num_pumps:, :]
