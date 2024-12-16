@@ -146,4 +146,6 @@ def fra_greater(dgd, gvd):
 if gvd != 0:
     LD = - T**2 / gvd
     print(f"L/LD = zL = {L/LD:.3e}")
-print(f"DGD = 0. num = {nlin_numerics(1e-20, gvd):.3e}, fra < = {fra_lesser(0, gvd):.3e}, fra novel = {fra_novel(0, gvd):.3e}")
+print(f"DGD = 0. num = {nlin_numerics(1e-20, gvd):.3e}, \
+      fra < = {fra_lesser(0, gvd):.3e}, \
+      fra novel = {fra_novel(0, gvd):.3e}")

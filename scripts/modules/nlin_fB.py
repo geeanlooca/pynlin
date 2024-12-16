@@ -195,23 +195,30 @@ def antonio_rescale_max(dgd):
   acc = 0.0
   for m in get_m_values(dummy_fiber, wdm, a_chan, b_chan, T, 0, dgd):
     acc += fB_max_function(get_collision_location(m, dummy_fiber, wdm, a_chan, b_chan, pulse, dgd))**2
-  print(acc)
   return acc
 
 def antonio_rescale_min(dgd):
-  return np.sum(fB_min_function(get_collision_location(get_m_values(dummy_fiber, wdm, a_chan, b_chan, T, 0, dgds_analytic), dummy_fiber, wdm, a_chan, b_chan, pulse, dgd))**2)
+  acc = 0.0
+  for m in get_m_values(dummy_fiber, wdm, a_chan, b_chan, T, 0, dgd):
+    acc += fB_min_function(get_collision_location(m, dummy_fiber, wdm, a_chan, b_chan, pulse, dgd))**2
+  return acc
 
+# TODO this is very slow
+nlin_analytic_max = np.zeros_like(dgds_analytic)
+nlin_analytic_min = np.zeros_like(dgds_analytic)
 for ix, i in enumerate(dgds_analytic):
-  plt.scatter(i * 1e12, antonio_rescale_max(i)
-         / i**2 * 1e-30, lw = 1, color='red')
+  nlin_analytic_max[ix] = antonio_rescale_max(i)/(i**2) * 1e-30
+  nlin_analytic_min[ix] = antonio_rescale_min(i)/(i**2) * 1e-30
+
+plt.plot(dgds_analytic * 1e12, nlin_analytic_min, lw = 1, color='red')
+plt.plot(dgds_analytic * 1e12, nlin_analytic_max, lw = 1, color='red')
+
 # plt.plot(dgds_analytic * 1e12, np.sum(fB_min_function(get_collision_location(get_m_values(dummy_fiber, wdm, a_chan, b_chan, T, 0, dgds_analytic), dummy_fiber, wdm, a_chan, b_chan, pulse, dgds_analytic))**2)
 #          * analytic_nlin * 1e-30, lw = 1, color='red')
 # plt.plot(dgds_analytic * 1e12, analytic_nlin * 1e-30, lw = 1, color='red', ls="--")
 # Fra LOWER
 # plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) * 
 #          (LD_eff/ (T * np.sqrt(2 * np.pi)) * np.arcsinh(L / LD_eff))**2 * 1e-30, color='blue', lw=1, label=r'$N^<$')
-
-
 # plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) * 
 #          (L/ (T * np.sqrt(2 * np.pi)))**2 * 1e-30, color='blue', lw=1, label=r'$N^<$')
 # Fra UPPER
