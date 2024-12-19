@@ -30,7 +30,7 @@ def ct_solver(power_per_pump,
               use_precomputed=False,
               optimize=False
               ):
-    cf = cfg.load_toml_to_struct("./input/s+c+l_config.toml")
+    cf = cfg.load_toml_to_struct("./input/config.toml")
     
     oi_fit = np.load('oi_fit.npy')
     oi_avg = np.load('oi_avg.npy')
@@ -190,16 +190,16 @@ def ct_solver(power_per_pump,
     plt.clf()
     plt.figure(figsize=(4, 3))
     for i in range(cf.n_modes):
-        plt.plot(signal_wavelengths * 1e6, watt2dBm(signal_solution[-1, :, i]) + 30)
+        plt.plot(signal_wavelengths * 1e6, watt2dBm(signal_solution[-1, :, i]) - cf.launch_power)
     plt.xlabel(r"Channel Wavelength [$\mu$ m]")
     plt.ylabel("Gain [dB]")
     plt.tight_layout()
     plt.savefig("media/flatness.pdf")
     return
 
-ct_solver(power_per_pump = dBm2watt(0.0),
-          learning_rate = 1e-3,
-          epochs = 100,
+ct_solver(power_per_pump   = dBm2watt(0.0),
+          learning_rate    = 1e-4,
+          epochs           = 1000,
           lock_wavelengths = 0,
-          use_precomputed = True,
-          optimize = True)
+          use_precomputed  = False,
+          optimize         = True)

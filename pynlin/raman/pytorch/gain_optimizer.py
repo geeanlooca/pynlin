@@ -82,17 +82,14 @@ class GainOptimizer(nn.Module):
         self.pump_wavelengths.requires_grad = False
         reg_lambda = 0.0
         # pbar = tqdm.trange(epochs)
-        pbar = tqdm.trange(epochs)
-        for epoch in pbar:
+        # pbar = tqdm.trange(epochs)
+        for epoch in range(epochs):
             if best_loss > 0.001 or flatness > 0.001:
                 if epoch > lock_wavelengths:
                     self.pump_wavelengths.requires_grad = True
                 pump_wavelengths = self.unscale(
                     self.pump_wavelengths, *self.wavelength_scaling
                 )
-                # TODO add the power dependency on the modes? No, we do not tune the modes 
-                # TODO adapt this whole method to MMF
-                # print("pump_powers: ", self.pump_powers)
                 signal_spectrum = self.forward(
                     pump_wavelengths, self.pump_powers) + reg_lambda * torch.sum(dBm2watt(self.pump_powers[4:]))
                 
@@ -105,11 +102,8 @@ class GainOptimizer(nn.Module):
                     flatness = (
                         torch.max(signal_spectrum) - torch.min(signal_spectrum)
                     ).item()
-                    # print("Signal spectrum: ", signal_spectrum)
-                pbar.set_description(
-                    f"Loss: {loss.item():.4f}"
-                    + f"\tBest Loss: {best_loss:.4f}"
-                    + f"\tFlatness: {flatness:.2f} dB"
+                print(
+                    f"({epoch:4d}/{epochs:4d}) RMSE: {np.sqrt(loss.item()):10.4f} | Best: {np.sqrt(best_loss):10.4f} | Flat: {flatness:6.2f} dB"
                 )
                 # print(f"\nWavel. : {pump_wavelengths}"+f"\nPow. : {self.pump_powers}")
                 # pbar.set_description(
