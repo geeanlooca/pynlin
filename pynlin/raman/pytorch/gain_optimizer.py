@@ -105,6 +105,7 @@ class GainOptimizer(nn.Module):
                 print(
                     f"({epoch:4d}/{epochs:4d}) RMSE: {np.sqrt(loss.item()):10.4f} | Best: {np.sqrt(best_loss):10.4f} | Flat: {flatness:6.2f} dB"
                 )
+                np.save("results/gain_walker.npy", signal_spectrum.detach().numpy()[0])
                 # print(f"\nWavel. : {pump_wavelengths}"+f"\nPow. : {self.pump_powers}")
                 # pbar.set_description(
                 #     f"Loss: {loss.item():.4f}"
