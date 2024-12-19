@@ -20,7 +20,7 @@ rc('text', usetex=True)
 logging.basicConfig(filename='MMF_optimizer.log', encoding='utf-8', level=logging.INFO)
 log = logging.getLogger(__name__)
 log.debug("starting to load sim_config.json")
-f = open("./scripts/sim_config.json")
+f = open("./input/sim_config.json")
 
 data = json.load(f)
 dispersion = data["dispersion"]

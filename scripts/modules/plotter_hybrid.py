@@ -17,7 +17,7 @@ import json
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly as ptly
-f = open("./scripts/sim_config.json")
+f = open("./input/sim_config.json")
 data = json.load(f)
 dispersion = data["dispersion"]
 effective_area = data["effective_area"]

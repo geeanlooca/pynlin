@@ -17,7 +17,7 @@ logging.basicConfig(filename='MMF_optimizer.log', encoding='utf-8', level=loggin
 log = logging.getLogger(__name__)
 log.debug("starting to load itu_config.json")
 
-f = open("./scripts/itu_config.json")
+f = open("./input/itu_config.json")
 data = json.load(f)
 # print(data)
 dispersion = data["dispersion"]

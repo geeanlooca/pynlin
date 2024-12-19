@@ -22,7 +22,7 @@ from scipy.special import erfc
 import json
 from matplotlib.lines import Line2D
 
-f = open("./scripts/sim_config.json")
+f = open("./input/sim_config.json")
 data = json.load(f)
 dispersion = data["dispersion"]
 effective_area = data["effective_area"]

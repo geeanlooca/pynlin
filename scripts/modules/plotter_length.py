@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import os
 import json
 
-f = open("./scripts/sim_config.json")
+f = open("./input/sim_config.json")
 data = json.load(f)
 print(data)
 dispersion=data["dispersion"] 

@@ -15,7 +15,7 @@ from pynlin.utils import dBm2watt
 import pynlin.constellations
 import json
 
-f = open("./scripts/sim_config.json")
+f = open("./input/sim_config.json")
 data = json.load(f)
 print(data)
 dispersion=data["dispersion"] 

@@ -15,7 +15,7 @@ import pynlin.pulses
 from scripts.modules.load_fiber_values import load_group_delay
 
 with open("./scripts/sim_config.json") as f:
-    f = open("./scripts/sim_config.json")
+    f = open("./input/sim_config.json")
 
 data = json.load(f)
 # print(data)

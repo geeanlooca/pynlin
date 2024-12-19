@@ -13,7 +13,7 @@ from matplotlib.lines import Line2D
 import matplotlib as mpl
 import json
 
-f = open("./scripts/sim_config.json")
+f = open("./input/sim_config.json")
 data = json.load(f)
 dispersion = data["dispersion"]
 effective_area = data["effective_area"]
