@@ -54,11 +54,6 @@ def ct_solver(power_per_pump,
         overlap_integrals=oi_set,
         group_delay=load_group_delay()
     )
-    actual_fiber = pynlin.fiber.MMFiber(
-        effective_area=80e-12,
-        n_modes=cf.n_modes,
-        overlap_integrals=oi_fit,
-    )
     wdm = pynlin.wdm.WDM(
         spacing=cf.channel_spacing,
         num_channels=cf.n_channels,
@@ -94,7 +89,7 @@ def ct_solver(power_per_pump,
         cf.n_pumps,
         signal_wavelengths,
         power_per_channel,
-        actual_fiber,
+        fiber,
         counterpumping=True
     )
 
@@ -129,6 +124,12 @@ def ct_solver(power_per_pump,
         pump_wavelengths = initial_pump_wavelengths
         pump_powers = initial_pump_powers
 
+    # pump_powers = dBm2watt(np.array([[-21.85989  ,  -20.09531,    -3.6252213,  -4.635441],
+    #                                  [-22.586395 , -22.662815,   -0.6153221, -10.385101 ],
+    #                                  [-29.606964 , -17.747086,    7.1342697,   5.4607315],
+    #                                  [-20.63578  ,  -5.220028,    5.5978813,   3.5029488]]))
+    # pump_wavelengths = np.array([1.4473351e-06, 1.4666621e-06, 1.4850884e-06, 1.5149197e-06])
+    
     amplifier = NumpyMMFRamanAmplifier(fiber)
     pump_powers = pump_powers.reshape((cf.n_pumps, cf.n_modes))
     pump_solution, signal_solution = amplifier.solve(
@@ -137,7 +138,7 @@ def ct_solver(power_per_pump,
         pump_powers,
         pump_wavelengths,
         z_max,
-        actual_fiber,
+        fiber,
         counterpumping=True,
         reference_bandwidth=ref_bandwidth
     )
@@ -147,17 +148,18 @@ def ct_solver(power_per_pump,
     loss = -0.2e-3 * cf.fiber_length
     on_off_gain = -loss + cf.raman_gain
     flatness_percent = flatness / on_off_gain * 100
-    # /  10**(cf.raman_gain/10) * 100
+
+    
     avg_gain = np.mean(watt2dBm(signal_solution[-1, :, :]))
     print("_" * 35)
     print("Pump powers")
-    print(watt2dBm(pump_powers.reshape((cf.n_pumps, cf.n_modes))))
+    print(repr(watt2dBm(pump_powers.reshape((cf.n_pumps, cf.n_modes)))))
     print("Initial pump powers")
-    print(watt2dBm(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes))))
+    print(repr(watt2dBm(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes)))))
     print("Pump wavelenghts")
-    print(pump_wavelengths)
+    print(repr(pump_wavelengths))
     print("Initial pump wavelenghts")
-    print(initial_pump_wavelengths)
+    print(repr(initial_pump_wavelengths))
     print("_" * 35)
     print(f"> final flatness: {flatness:.2f} dB | {flatness_percent:.2f} %")
     print("_" * 35)
@@ -221,15 +223,13 @@ def plot_profiles(signal_wavelengths,
     plt.savefig("media/flatness.pdf")
     return
 
-
-ct_solver(power_per_pump   = dBm2watt(3.0),
-          pump_band_a      = 1410e-9,
-          pump_band_b      = 1520e-9,
-          learning_rate    = 1e-4,
-          epochs           = 1000,
-          lock_wavelengths = 100,
-          use_precomputed  = False,
-          optimize         = True
-          )
-
-# Still need to find a good starting point for the pumps
+for _ in range(1):
+  ct_solver(power_per_pump   = dBm2watt(-10.0),
+            pump_band_a      = 1350e-9,
+            pump_band_b      = 1465e-9,
+            learning_rate    = 1e-4,
+            epochs           = 1000,
+            lock_wavelengths = 1,
+            use_precomputed  = False,
+            optimize         = True
+            )

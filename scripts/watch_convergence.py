@@ -31,7 +31,8 @@ class SignalPlotter(FileSystemEventHandler):
                 
             data_min = np.min(signals) + self.ref
             data_max = np.max(signals) + self.ref
-            center = (data_max + data_min) / 2
+            center = np.mean(signals, axis=(0, 1)) + self.ref
+            # center = (data_max + data_min) / 2
             half_range = 5 / 2
             self.ax.set_ylim(center - half_range, center + half_range)
             
