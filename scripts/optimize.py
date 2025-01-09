@@ -27,6 +27,7 @@ def ct_solver(power_per_pump,
               learning_rate,
               epochs,
               lock_wavelengths,
+              batch_size = 1,
               use_precomputed=False,
               optimize=False
               ):
@@ -63,9 +64,6 @@ def ct_solver(power_per_pump,
     z_max = np.linspace(0, fiber.length, integration_steps)
 
     np.save("z_max.npy", z_max)
-    pbar_description = "Optimizing vs signal power"
-    pbar = tqdm.tqdm(cf.launch_power, leave=False)
-    pbar.set_description(pbar_description)
     print(
         f"> Running optimization for Pin = {cf.launch_power:.2e} dBm, and gain = {cf.raman_gain:.2e} dB.\n")
     if use_precomputed and os.path.exists("results/pump_solution_ct_power" + str(cf.launch_power) + "_opt_gain_" + str(cf.raman_gain) + ".npy"):
@@ -100,10 +98,21 @@ def ct_solver(power_per_pump,
         except:
             print("The precomputed values are either")
 
+    # Make the gain flat again
+    # GPU + Batch
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Device used is ", device)
+
+    initial_pump_wavelengths_tensor = torch.from_numpy(initial_pump_wavelengths).repeat(batch_size, 1)
+    initial_pump_powers_tensor =           torch.from_numpy(initial_pump_powers).repeat(batch_size, 1)
+    initial_pump_wavelengths_tensor = torch.from_numpy(initial_pump_wavelengths).to(device)
+    initial_pump_powers_tensor =           torch.from_numpy(initial_pump_powers).to(device)
+
     optimizer = GainOptimizer(
         torch_amplifier_ct,
-        torch.from_numpy(initial_pump_wavelengths),
-        torch.from_numpy(initial_pump_powers),
+        initial_pump_wavelengths_tensor,
+        initial_pump_powers_tensor,
+        batch_size=batch_size
     )
 
     signal_powers = np.ones_like(signal_wavelengths) * power_per_channel
@@ -225,11 +234,12 @@ def plot_profiles(signal_wavelengths,
 
 for _ in range(1):
   ct_solver(power_per_pump   = dBm2watt(-10.0),
-            pump_band_a      = 1350e-9,
-            pump_band_b      = 1465e-9,
+            pump_band_a      = 1410e-9,
+            pump_band_b      = 1520e-9,
             learning_rate    = 1e-4,
             epochs           = 1000,
-            lock_wavelengths = 1,
-            use_precomputed  = False,
+            lock_wavelengths = 100,
+            batch_size       = 128, 
+            use_precomputed  = True,
             optimize         = True
             )

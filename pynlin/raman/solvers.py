@@ -651,23 +651,18 @@ class MMFRamanAmplifier(RamanAmplifier):
         frequencies = wavelength_to_frequency(wavelengths)
 
         loss_coeffs = fiber.losses
-
         losses_ = polyval(loss_coeffs, wavelengths)
-
         losses_linear = alpha_to_linear(losses_)
         losses_linear = np.repeat(losses_linear, fiber.n_modes)
 
-        # Compute the frequency shifts for each signal
         frequency_shifts = np.zeros((total_wavelengths, total_wavelengths))
         for i in range(total_wavelengths):
             frequency_shifts[i, :] = frequencies - frequencies[i]
 
         gains = self._interpolate_gain(frequency_shifts)
-
         gains *= fiber.raman_coefficient
 
         # Must be multiplied by overlap integrals
-
         # Force diagonal to be 0
         np.fill_diagonal(gains, 0)
         # gains = np.triu(gains) + np.triu(gains, 1).T
@@ -678,15 +673,12 @@ class MMFRamanAmplifier(RamanAmplifier):
 
         mode_list = np.array(range(fiber.n_modes))
         # change the order of creation
-        
         oi = fiber.get_oi_matrix(mode_list, wavelengths)
         
         gain_matrix = freq_scaling * gains
-
         gain_matrix = gain_matrix.repeat(fiber.n_modes, axis=0).repeat(
             fiber.n_modes, axis=1
         )
-
         gains_mmf = gain_matrix * oi
     
         np.save("np_gains.npy", frequencies)
@@ -709,7 +701,6 @@ class MMFRamanAmplifier(RamanAmplifier):
                 signal_solution = sol[:, num_pumps:, :]
             else:
                 # SHOOTING METHOD
-
                 pump_losses = losses_linear[: num_pumps * fiber.n_modes]
 
                 if initial_guesses is None:

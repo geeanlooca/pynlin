@@ -24,6 +24,7 @@ class GainOptimizer(nn.Module):
         raman_torch_solver: MMFRamanAmplifier,
         initial_pump_wavelengths: torch.Tensor,
         initial_pump_powers: torch.Tensor,
+        batch_size: int = 1,
     ):
         super(GainOptimizer, self).__init__()
         self.raman_solver = raman_torch_solver
@@ -32,11 +33,12 @@ class GainOptimizer(nn.Module):
         )
         self.pump_powers = nn.Parameter(initial_pump_powers.float())
         self.pump_wavelengths = nn.Parameter(scaled_wavelengths)
+        self.batch_size = batch_size
 
     def forward(self, wavelengths: torch.Tensor, powers: torch.Tensor) -> torch.Tensor:
         """Compute the output spectrum of the Raman amplifier given pump
         parameters."""
-        x = torch.cat((wavelengths, powers)).view(1, -1).float()
+        x = torch.cat((wavelengths, powers)).view(1, -1).float().repeat(self.batch_size, 1)
         return dBm(self.raman_solver(x).float())
 
     def scale(

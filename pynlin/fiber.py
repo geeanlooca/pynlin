@@ -115,8 +115,6 @@ class OICoefficients:
         return oi_polynomial_expansion(wavelengths, self.values)
 
 
-
-
 @dataclass
 class GroupDelay:
     """

@@ -559,7 +559,6 @@ class MMFRamanAmplifier(torch.nn.Module):
         interpolation_grid = torch.zeros(
             (batch_size, 1, num_freqs ** 2, 2), dtype=x.dtype, device=x.device,
         )
-
         pump_wavelengths = x[:, : self.num_pumps]
 
         pump_loss = self._alpha_to_linear(
@@ -621,28 +620,28 @@ class MMFRamanAmplifier(torch.nn.Module):
 
         # np.save("tc_gains.npy", total_freqs[0, :].detach().numpy())
         """
-     build gain matrix, tiling gains by the number of modes and multiplying
-     for the corresponding overlap integral
-     In the gain matrix, each entry corresponds to the gain between two frequencies
-     Now we have to repeat each row and column by the number of the fiber modes, so
-     that a block-like matrix is built. Each block contains the gain all the modes
-     at two frequencies
-    
-                F1        F2
-            +---------+---------+
-            | m11 m12 | m11 m12 |
-       F1   | m21 m22 | m21 m22 |
-            +---------+---------+
-            | m11 m12 | m11 m12 |
-       F2   | m21 m22 | m21 m22 |
-            +---------+---------+
-            
-     mantain the same topology?
-     gain = gain.repeat_interleave(self.modes, dim=1).repeat_interleave(
-     self.modes, dim=2
-     )
-         beware, dim = 0 is the batch dimension
-    """
+        build gain matrix, tiling gains by the number of modes and multiplying
+        for the corresponding overlap integral
+        In the gain matrix, each entry corresponds to the gain between two frequencies
+        Now we have to repeat each row and column by the number of the fiber modes, so
+        that a block-like matrix is built. Each block contains the gain all the modes
+        at two frequencies
+        
+                    F1        F2
+                +---------+---------+
+                | m11 m12 | m11 m12 |
+          F1    | m21 m22 | m21 m22 |
+                +---------+---------+
+                | m11 m12 | m11 m12 |
+          F2    | m21 m22 | m21 m22 |
+                +---------+---------+
+                
+        mantain the same topology?
+        gain = gain.repeat_interleave(self.modes, dim=1).repeat_interleave(
+        self.modes, dim=2
+        )
+            beware, dim = 0 is the batch dimension
+        """
 
         gain = gain.repeat_interleave(self.modes, dim=1).repeat_interleave(
             self.modes, dim=2
@@ -651,7 +650,8 @@ class MMFRamanAmplifier(torch.nn.Module):
 
         # oi = torch.from_numpy(self.fiber.get_oi_matrix_torch(range(self.modes), 3e8 / total_freqs))
         oi = self.fiber.torch_oi.evaluate_oi_tensor(total_wavelenghts)
-
+        # print(f"OI  : {oi.shape}")
+        # print(f"Gain: {gain.shape}")
         # print("\nTORCH OI: ", oi.shape)
         # oi_numpy = oi.detach().numpy()
         """
@@ -677,7 +677,7 @@ class MMFRamanAmplifier(torch.nn.Module):
             | f1 f1 | f2 f2 |     | f2 f2 | f2 f2 |     | c11 c12 | c11 c12 |
             | f1 f1 | f2 f2 |     | f2 f2 | f2 f2 |     | c21 c22 | c21 c22 |
             +-------+-------+0    +-------+-------+1    +---------+---------+2
-    """
+        """
 
         # oi = torch.from_numpy(self.overlap_integrals_avg[None, :, :].repeat(num_freqs, axis=1).repeat(num_freqs, axis=2)).float()
         G = gain * oi

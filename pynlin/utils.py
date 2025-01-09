@@ -71,16 +71,35 @@ def oi_law(l1, l2, params):
 
 
 def oi_polynomial_expansion(wl, values):
+  
     A1, B1, A2, B2, X, C = values
-    M = A1.shape[0]
-    N = wl.shape[1]
-    OIa1 = torch.kron((wl**2).reshape(N, 1), A1).repeat(1, N)
-    OIa2 = torch.kron(wl**2, A2).repeat(N, 1)
-    OIb1 = torch.kron(wl.reshape(N, 1), B1).repeat(1, N)
-    OIb2 = torch.kron(wl, B2).repeat(N, 1)
-    OIx = torch.kron(torch.kron(wl.reshape(N, 1), X), wl)
-    OIc = C.repeat((N, N))
-    return (OIa1 + OIa2 + OIb1 + OIb2 + OIx + OIc).float()
+    batch_size = wl.shape[0]
+    M = A1.shape[0] # Number of modes
+    N = wl.shape[1] # Number of wavelengths
+    # print(f"{A1.shape} {B1.shape} {A2.shape} {B2.shape} {X.shape} {C.shape}")
+    # print(f"{wl.shape}")
+    OIa1 = torch.kron((wl**2).reshape(batch_size, N, 1), A1).repeat(1, 1, N)
+    OIa2 = torch.kron((wl**2).reshape(batch_size, 1, N), A2).repeat(1, N, 1)
+    OIb1 = torch.kron(wl.reshape(batch_size, N, 1), B1).repeat(1, 1, N)
+    OIb2 = torch.kron(wl.reshape(batch_size, 1, N), B2).repeat(1, N, 1)
+    OIx = torch.kron(torch.kron(wl.reshape(batch_size, N, 1), X), wl.reshape(batch_size, 1, N))
+    OIc = C.repeat((batch_size, N, N))
+    # print(f"{OIa1.shape} {OIa2.shape} {OIb1.shape} {OIb2.shape} {OIx.shape} {OIc.shape}")
+    return (OIa1 + OIa2 + OIb1 + OIb2 + OIx  + OIc).float()
+
+    # A1, B1, A2, B2, X, C = values
+    # batch_size = wl.shape[0]
+    # N = wl.shape[1]
+    
+    # OIa1 = torch.kron((wl**2).reshape(batch_size, N, 1), A1).repeat(1, N, 1)
+    # OIa2 = torch.kron(wl**2, A2).repeat(batch_size, N, 1)
+    # OIb1 = torch.kron(wl.reshape(batch_size, N, 1), B1).repeat(1, N, N)
+    # OIb2 = torch.kron(wl, B2).repeat(batch_size, N, 1)
+    # OIx = torch.kron(torch.kron(wl.reshape(batch_size, N, 1), X), wl)
+    # OIc = C.repeat(batch_size, N, N)
+    
+    # return (OIa1 + OIa2 + OIb1 + OIb2 + OIx + OIc).float()
+
 
 
 # def beta_n_polynomial_expansion(vals, f):
