@@ -97,14 +97,13 @@ def ct_solver(power_per_pump,
             initial_pump_powers = np.load("results/opt_pump_powers.npy")
         except:
             print("The precomputed values are either")
+    
+    print("WAT HAPPENEDDDD??")
+    print(repr(watt2dBm(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes)))))
 
     # Make the gain flat again
     # GPU + Batch
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print("Device used is ", device)
-
-    initial_pump_wavelengths_tensor = torch.from_numpy(initial_pump_wavelengths).repeat(batch_size, 1)
-    initial_pump_powers_tensor =           torch.from_numpy(initial_pump_powers).repeat(batch_size, 1)
     initial_pump_wavelengths_tensor = torch.from_numpy(initial_pump_wavelengths).to(device)
     initial_pump_powers_tensor =           torch.from_numpy(initial_pump_powers).to(device)
 
@@ -161,14 +160,14 @@ def ct_solver(power_per_pump,
     
     avg_gain = np.mean(watt2dBm(signal_solution[-1, :, :]))
     print("_" * 35)
-    print("Pump powers")
+    print("Pump powers ---------------- [dBm]")
     print(repr(watt2dBm(pump_powers.reshape((cf.n_pumps, cf.n_modes)))))
-    print("Initial pump powers")
+    print("Initial pump powers -------- [dBm]")
     print(repr(watt2dBm(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes)))))
-    print("Pump wavelenghts")
-    print(repr(pump_wavelengths))
-    print("Initial pump wavelenghts")
-    print(repr(initial_pump_wavelengths))
+    print("Pump wavelenghts ----------- [um] ")
+    print(repr(pump_wavelengths*1e6))
+    print("Initial pump wavelenghts --- [um]")
+    print(repr(initial_pump_wavelengths*1e6))
     print("_" * 35)
     print(f"> final flatness: {flatness:.2f} dB | {flatness_percent:.2f} %")
     print("_" * 35)
@@ -233,13 +232,13 @@ def plot_profiles(signal_wavelengths,
     return
 
 for _ in range(1):
-  ct_solver(power_per_pump   = dBm2watt(-10.0),
+  ct_solver(power_per_pump   = dBm2watt(10.0),
             pump_band_a      = 1410e-9,
             pump_band_b      = 1520e-9,
-            learning_rate    = 1e-4,
-            epochs           = 1000,
+            learning_rate    = 1e-3,
+            epochs           = 200,
             lock_wavelengths = 100,
-            batch_size       = 128, 
-            use_precomputed  = True,
+            batch_size       = 1, 
+            use_precomputed  = False,
             optimize         = True
             )

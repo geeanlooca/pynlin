@@ -23,7 +23,7 @@ class GainOptimizer(nn.Module):
         self,
         raman_torch_solver: MMFRamanAmplifier,
         initial_pump_wavelengths: torch.Tensor,
-        initial_pump_powers: torch.Tensor,
+        initial_pump_powers: torch.Tensor, # in Watt
         batch_size: int = 1,
     ):
         super(GainOptimizer, self).__init__()
@@ -93,7 +93,7 @@ class GainOptimizer(nn.Module):
                     self.pump_wavelengths, *self.wavelength_scaling
                 )
                 signal_spectrum = self.forward(
-                    pump_wavelengths, self.pump_powers) + reg_lambda * torch.sum(dBm2watt(self.pump_powers[4:]))
+                    pump_wavelengths, self.pump_powers)
                 
                 loss = loss_function(signal_spectrum, _target_spectrum)
                 loss.backward()
@@ -108,7 +108,10 @@ class GainOptimizer(nn.Module):
                     f"({epoch:4d}/{epochs:4d}) RMSE: {np.sqrt(loss.item()):10.4f} | Best: {np.sqrt(best_loss):10.4f} | Flat: {flatness:6.2f} dB"
                 )
                 np.save("results/gain_walker.npy", signal_spectrum.detach().numpy()[0])
-                # print(f"\nWavel. : {pump_wavelengths}"+f"\nPow. : {self.pump_powers}")
+                np.save("results/pump_wavelengths.npy", pump_wavelengths.detach().numpy())
+                np.save("results/pump_powers.npy", self.pump_powers.detach().numpy())
+                print(f"\nWavel [um] : {pump_wavelengths*1e6}"+f"\nPow [W] : {self.pump_powers}")
+                print(f"\nWavel [um] : {pump_wavelengths*1e6}"+f"\nPow [W] : {self.pump_powers}")
                 # pbar.set_description(
                 #     f"Loss: {loss.item():.4f}"
                 #     + f"\tBest Loss: {best_loss:.4f}"
@@ -128,5 +131,5 @@ class GainOptimizer(nn.Module):
         # print(f"\nFlatness: {flatness:.2f} dB")
         return (
             best_wavelengths.detach().numpy().squeeze(),
-            torch.abs(best_powers).detach().numpy().squeeze(),
+            torch.relu(best_powers).detach().numpy().squeeze(),
         )

@@ -526,9 +526,7 @@ class MMFRamanAmplifier(torch.nn.Module):
         torch.Tensor
           Propagated power values
         """
-
         batch_size = P.shape[0]
-
         dPdz = (
             (
                 -losses.view(batch_size, -1, 1)
@@ -536,7 +534,6 @@ class MMFRamanAmplifier(torch.nn.Module):
             )
             * P.view(batch_size, -1, 1)
         ).view(batch_size, -1)
-
         return dPdz * direction
 
     def forward(self, x):
@@ -588,7 +585,7 @@ class MMFRamanAmplifier(torch.nn.Module):
         # I don't want to allow for negative values of the pump power in the optimizer
         total_power = torch.cat(
             (
-                torch.abs(x[:, self.num_pumps:]),
+                torch.relu(x[:, self.num_pumps:]),
                 self.signal_power.expand(batch_size, self.num_channels * self.modes),
             ),
             1,
@@ -654,31 +651,6 @@ class MMFRamanAmplifier(torch.nn.Module):
         # print(f"Gain: {gain.shape}")
         # print("\nTORCH OI: ", oi.shape)
         # oi_numpy = oi.detach().numpy()
-        """
-            +---------+   +---------+  +---------+
-            | c11 c12 |   | c11 c12 |  | c11 c12 |
-            | c21 c22 |   | c21 c22 |  | c21 c22 |
-            +---------+0  +---------+1 +---------+2
-
-            A1                        B1                      X
-            +---------+---------+    +---------+---------+   +---------+---------+
-            | c11 c12 | c11 c12 |    | c11 c12 | c11 c12 |   | c11 c12 | c11 c12 |
-            | c21 c22 | c21 c22 |    | c21 c22 | c21 c22 |   | c21 c22 | c21 c22 |
-            +---------+---------+    +---------+---------+   +---------+---------+
-            | c11 c12 | c11 c12 |    | c11 c12 | c11 c12 |   | c11 c12 | c11 c12 |
-            | c21 c22 | c21 c22 |    | c21 c22 | c21 c22 |   | c21 c22 | c21 c22 |
-            +---------+---------+0   +---------+---------+1  +---------+---------+2
-
-            F1                    F2                    FX
-            +-------+-------+     +-------+-------+     +---------+---------+
-            | f1 f1 | f2 f2 |     | f1 f1 | f1 f1 |     | c11 c12 | c11 c12 |
-            | f1 f1 | f2 f2 |     | f1 f1 | f1 f1 |     | c21 c22 | c21 c22 |
-            +-------+-------+  *  +-------+-------+  =  +---------+---------+
-            | f1 f1 | f2 f2 |     | f2 f2 | f2 f2 |     | c11 c12 | c11 c12 |
-            | f1 f1 | f2 f2 |     | f2 f2 | f2 f2 |     | c21 c22 | c21 c22 |
-            +-------+-------+0    +-------+-------+1    +---------+---------+2
-        """
-
         # oi = torch.from_numpy(self.overlap_integrals_avg[None, :, :].repeat(num_freqs, axis=1).repeat(num_freqs, axis=2)).float()
         G = gain * oi
         solution = torch_rk4(
