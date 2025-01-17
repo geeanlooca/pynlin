@@ -269,22 +269,21 @@ def m_th_time_integral(
     a_chan: Tuple[int, int],
     b_chan: Tuple[int, int],
     dgd, ### for manual operation of the DGD
-    gvd, 
+    gvd,
     m: int,
     z: List[float],
+    gvda = None, # additional parameters for full specification  
+    gvdb = None,
 ):
     freq_spacing = get_frequency_spacing(a_chan, b_chan, wdm)
     if isinstance(pulse, NyquistPulse):
-        return m_th_time_integral_general(pulse, fiber, wdm, a_chan, b_chan, freq_spacing, m, z, dgd, gvd)
+        return m_th_time_integral_general(pulse, fiber, wdm, a_chan, b_chan, freq_spacing, m, z, dgd, gvd, gvda, gvdb)
         raise NotImplementedError("no Nyquist Pulse yet")
     elif isinstance(pulse, GaussianPulse):
-        # return m_th_time_integral_general(pulse, fiber, wdm, a_chan, b_chan, freq_spacing, m, z)
-        # aaa = m_th_time_integral_general(pulse, fiber, wdm, a_chan, b_chan, freq_spacing, m, z, dgd, gvd)
-        aaa = m_th_time_integral_Gaussian(pulse, fiber, wdm, a_chan, b_chan, freq_spacing, dgd, gvd, m, z)
-        # print("ciao", aaa)
+        aaa = m_th_time_integral_Gaussian(pulse, fiber, wdm, a_chan, b_chan, freq_spacing, dgd, gvd, m, z, gvda, gvdb)
         return aaa
     else:
-        return m_th_time_integral_general(pulse, fiber, wdm, a_chan, b_chan, freq_spacing, m, z, dgd, gvd)
+        return m_th_time_integral_general(pulse, fiber, wdm, a_chan, b_chan, freq_spacing, m, z, dgd, gvd, gvda, gvdb)
 
 
 # @jit
@@ -298,7 +297,9 @@ def m_th_time_integral_Gaussian(
     dgd, 
     gvd,
     m: int,
-    z: List[float], 
+    z: List[float],
+    gvda = None,
+    gvdb = None, 
 ) -> float:
     # Apply the fully analytical formula
     if dgd is None: 
@@ -344,7 +345,9 @@ def m_th_time_integral_Nyquist(
     b_chan: Tuple[int, int],
     freq_spacing: float,
     m: int,
-    z: float
+    z: float,
+    gvda = None,
+    gvdb = None,
 ) -> float:
     # Nakazawa formula for propagation and then integration??
     # Integrate in spectral domain?
@@ -382,7 +385,9 @@ def m_th_time_integral_general(
     m: int,
     z_axis: List[float],
     dgd = None,
-    gvd = None 
+    gvd = None,
+    gvda = None,
+    gvdb = None,
 ) -> float:
     i_list = []
     dt = pulse.T0/pulse.samples_per_symbol
@@ -395,12 +400,12 @@ def m_th_time_integral_general(
         g4 = np.conj(g3)
         i_list.append(scipy.integrate.trapezoid(g1 * g2 * g3 * g4, dx=dt))
     else:
-      avg_l_d = 1 / (np.abs(gvd) * (pulse.baud_rate)**2)
+      # avg_l_d = 1 / (np.abs(gvd) * (pulse.baud_rate)**2)
       for z in z_axis:
         delay = m / pulse.baud_rate + dgd * z
-        g1 = apply_chromatic_dispersion(b_chan, pulse, fiber, wdm, z, gvd, 0.0)
+        g1 = apply_chromatic_dispersion(b_chan, pulse, fiber, wdm, z, gvda, 0.0)
         g2 = np.conj(g1)
-        g3 = apply_chromatic_dispersion(b_chan, pulse, fiber, wdm, z, gvd, delay)
+        g3 = apply_chromatic_dispersion(b_chan, pulse, fiber, wdm, z, gvdb, delay)
         g4 = np.conj(g3)
         i_list.append(scipy.integrate.trapezoid(g1 * g2 * g3 * g4, dx=dt))
     return i_list

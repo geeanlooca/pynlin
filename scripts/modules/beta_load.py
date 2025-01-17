@@ -188,11 +188,6 @@ for i, label in enumerate(['L', 'C', 'S']):
     plt.text(freq_boundaries[i]+1, 4.8932, label, ha='center', va='bottom')
     plt.axvline(freq_boundaries[i], color="pink", lw=1)
 #
-
-# formatter = ScalarFormatter(useMathText=True, useOffset=True)
-# formatter.set_scientific(True)
-# formatter.set_powerlimits((-10, 10))
-# plt.gca().yaxis.set_major_formatter(formatter)
 plt.xlabel(r'$f \; [\mathrm{THz}]$')
 plt.ylabel(r'$\beta_1 [\mathrm{ns}/\mathrm{m}]$')
 plt.ticklabel_format(axis='y', style='sci', scilimits=(0, 0), useOffset=4.89)
