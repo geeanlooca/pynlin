@@ -85,7 +85,7 @@ def oi_polynomial_expansion(wl, values):
     OIx = torch.kron(torch.kron(wl.reshape(batch_size, N, 1), X), wl.reshape(batch_size, 1, N))
     OIc = C.repeat((batch_size, N, N))
     # print(f"{OIa1.shape} {OIa2.shape} {OIb1.shape} {OIb2.shape} {OIx.shape} {OIc.shape}")
-    return (OIa1 + OIa2 + OIb1 + OIb2 + OIx  + OIc).float()
+    return (OIa1 + OIa2 + OIb1 + OIb2 + OIx + OIc).float()
 
     # A1, B1, A2, B2, X, C = values
     # batch_size = wl.shape[0]

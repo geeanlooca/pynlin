@@ -6,13 +6,18 @@ import tqdm
 from torch import nn
 from torch.nn import MSELoss
 from torch.optim.adam import Adam
-from pynlin.utils import dBm2watt
+from torch.optim.sgd import SGD
+from pynlin.utils import dBm2watt, watt2dBm
 from pynlin.raman.pytorch.solvers import MMFRamanAmplifier
 
 
 def dBm(x: torch.Tensor) -> torch.Tensor:
     """Convert a tensor from Watt to dBm."""
     return 10 * torch.log10(x) + 30
+
+def watt(x: torch.Tensor) -> torch.Tensor:
+    """Convert a tensor from dBm to Watt."""
+    return torch.pow(10, (x - 30) / 10)
 
 
 class GainOptimizer(nn.Module):
@@ -23,7 +28,7 @@ class GainOptimizer(nn.Module):
         self,
         raman_torch_solver: MMFRamanAmplifier,
         initial_pump_wavelengths: torch.Tensor,
-        initial_pump_powers: torch.Tensor, # in Watt
+        initial_pump_powers: torch.Tensor, # in dBm
         batch_size: int = 1,
     ):
         super(GainOptimizer, self).__init__()
@@ -72,7 +77,15 @@ class GainOptimizer(nn.Module):
             _target_spectrum = torch.from_numpy(target_spectrum).float()
             # _target_spectrum = torch.from_numpy(target_spectrum).view(1, -1).float()
 
-        torch_optimizer = Adam(self.parameters(), lr=learning_rate)
+        torch_optimizer = Adam(
+            self.parameters(),
+            lr=learning_rate,          # Learning rate
+            betas=(0.9, 0.999), # (beta1, beta2)
+            eps=1e-08,         # Epsilon
+            weight_decay=0,    # Weight decay
+            amsgrad=False      # AMSGrad
+        )
+        # SGD(self.parameters(), lr=learning_rate, momentum=0.9)
         loss_function = MSELoss()
 
         best_loss = torch.inf
@@ -93,8 +106,10 @@ class GainOptimizer(nn.Module):
                     self.pump_wavelengths, *self.wavelength_scaling
                 )
                 signal_spectrum = self.forward(
-                    pump_wavelengths, self.pump_powers)
-                
+                    pump_wavelengths, watt(self.pump_powers)*0.1)
+                # print("*"*30)
+                # print(signal_spectrum) 
+                # print("*"*30)
                 loss = loss_function(signal_spectrum, _target_spectrum)
                 loss.backward()
                 torch_optimizer.step()
@@ -105,22 +120,19 @@ class GainOptimizer(nn.Module):
                         torch.max(signal_spectrum) - torch.min(signal_spectrum)
                     ).item()
                 print(
-                    f"({epoch:4d}/{epochs:4d}) RMSE: {np.sqrt(loss.item()):10.4f} | Best: {np.sqrt(best_loss):10.4f} | Flat: {flatness:6.2f} dB"
+                    f"\n({epoch:4d}/{epochs:4d}) RMSE: {np.sqrt(loss.item()):10.4f} | Best: {np.sqrt(best_loss):10.4f} | Flat: {flatness:6.2f} dB"
                 )
+                print(
+                  f"            Signal:  {torch.mean(signal_spectrum):.2f}  | Target:  {torch.mean(_target_spectrum):.2f}  | Pump:  {torch.mean(self.pump_powers):.2f}"
+                )
+                print(f"            Wavel [um] : {pump_wavelengths.detach().numpy()*1e6}")
+                print(f"            Pow. [dBm] : {self.pump_powers.detach().numpy()}")
                 np.save("results/gain_walker.npy", signal_spectrum.detach().numpy()[0])
-                np.save("results/pump_wavelengths.npy", pump_wavelengths.detach().numpy())
-                np.save("results/pump_powers.npy", self.pump_powers.detach().numpy())
-                print(f"\nWavel [um] : {pump_wavelengths*1e6}"+f"\nPow [W] : {self.pump_powers}")
-                print(f"\nWavel [um] : {pump_wavelengths*1e6}"+f"\nPow [W] : {self.pump_powers}")
-                # pbar.set_description(
-                #     f"Loss: {loss.item():.4f}"
-                #     + f"\tBest Loss: {best_loss:.4f}"
-                #     + f"\tFlatness: {flatness:.2f} dB"
-                # )
+                # np.save("results/pump_wavelengths.npy", pump_wavelengths.detach().numpy())
 
                 if loss.item() < best_loss:
                     pump_wavelengths = self.unscale(
-                        self.pump_wavelengths, *self.wavelength_scaling
+                        self.pump_wavelengths, * self.wavelength_scaling
                     )
                     best_wavelengths = torch.clone(pump_wavelengths)
                     best_powers = torch.clone(self.pump_powers)
@@ -128,8 +140,8 @@ class GainOptimizer(nn.Module):
                     best_flatness = flatness
                     
         print(f"\nPow. : {best_flatness}")
-        # print(f"\nFlatness: {flatness:.2f} dB")
+        print(f"\nFlatness: {flatness:.2f} dB")
         return (
             best_wavelengths.detach().numpy().squeeze(),
-            torch.relu(best_powers).detach().numpy().squeeze(),
+            best_powers.detach().numpy().squeeze(),
         )

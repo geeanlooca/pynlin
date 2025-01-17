@@ -276,7 +276,7 @@ class RamanAmplifier(torch.nn.Module):
         # Concatenate input pump power and signal power, making sure power > 0
         total_power = torch.cat(
             (
-                torch.nn.functional.relu(torch.abs(x[:, self.num_pumps:])),
+                x[:, self.num_pumps:],
                 self.signal_power.expand(batch_size, self.num_channels),
             ),
             1,
@@ -585,7 +585,7 @@ class MMFRamanAmplifier(torch.nn.Module):
         # I don't want to allow for negative values of the pump power in the optimizer
         total_power = torch.cat(
             (
-                torch.relu(x[:, self.num_pumps:]),
+                x[:, self.num_pumps:],
                 self.signal_power.expand(batch_size, self.num_channels * self.modes),
             ),
             1,
@@ -647,16 +647,21 @@ class MMFRamanAmplifier(torch.nn.Module):
 
         # oi = torch.from_numpy(self.fiber.get_oi_matrix_torch(range(self.modes), 3e8 / total_freqs))
         oi = self.fiber.torch_oi.evaluate_oi_tensor(total_wavelenghts)
-        # print(f"OI  : {oi.shape}")
+        # oi_avg = torch.mean(oi)
+        # print(f"OI  : {oi_avg.shape}")
         # print(f"Gain: {gain.shape}")
         # print("\nTORCH OI: ", oi.shape)
         # oi_numpy = oi.detach().numpy()
         # oi = torch.from_numpy(self.overlap_integrals_avg[None, :, :].repeat(num_freqs, axis=1).repeat(num_freqs, axis=2)).float()
         G = gain * oi
+        # G = gain
         solution = torch_rk4(
             MMFRamanAmplifier.ode, total_power, self.z, losses, G, self.direction,
         ).view(-1, num_freqs, self.modes)
         signal_spectrum = solution[:, self.num_pumps:, :].clone()
+        # print("*"*30)
+        # print(solution)
+        # print("*"*30)
 
         # if self.counterpumping:
         #   pump_initial_power = solution[:, : self.num_pumps, :].clone()

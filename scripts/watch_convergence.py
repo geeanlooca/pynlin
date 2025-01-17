@@ -23,6 +23,7 @@ class SignalPlotter(FileSystemEventHandler):
     def update_plot(self):
         try:
             signals = np.load(self.file_path)
+            print(signals)
             for i, line in enumerate(self.lines):
                 if i == 4:
                   line.set_data(range(signals.shape[0]), np.ones(signals.shape[0]) * np.mean(signals, axis=(0, 1)) + self.ref)

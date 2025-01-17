@@ -11,6 +11,7 @@ from scripts.modules.load_fiber_values import load_group_delay, load_dummy_group
 from numpy import polyval
 from pynlin.fiber import MMFiber
 from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import ScalarFormatter
 import json
 rc('text', usetex=True)
 logging.basicConfig(filename='MMF_optimizer.log', encoding='utf-8', level=logging.INFO)
@@ -128,7 +129,7 @@ for i in range(4):
     plt.plot(freqs * 1e-12, collisions[i, :], label=mode_names[i])
 plt.xlabel('Frequency (THz)')
 plt.ylabel(r'$m_{\mathrm{max}}$')
-plt.legend()
+plt.legend(labelspacing=0.1)
 # plt.grid(grid)
 plt.savefig(f"media/dispersion/collisions.png", dpi=dpi)
 # plt.show()
@@ -137,7 +138,7 @@ plt.clf()
 plt.plot(freqs * 1e-12, collisions_single[0, :], label=mode_names[i])
 plt.xlabel('Frequency (THz)')
 plt.ylabel(r'$m_{\mathrm{max}}$')
-plt.legend()
+plt.legend(labelspacing=0.1)
 plt.grid(grid)
 plt.savefig(f"media/dispersion/collisions_single.png", dpi=dpi)
 # plt.show()
@@ -147,49 +148,54 @@ for i in range(len(modes)):
   plt.semilogy(freqs * 1e-12, nlin_no_cross[i, :]*1e-30, label=mode_names[i], marker='x')
 plt.xlabel('Frequency (THz)')
 plt.ylabel('NLIN coeff')
-plt.legend()
+plt.legend(labelspacing=0.1)
 plt.grid(grid)
 plt.tight_layout()
 plt.savefig(f"media/dispersion/nlin_no_cross.png", dpi=dpi)
 # plt.show()
 
 plt.clf()
-plt.figure(figsize=(4, 3.5))
+plt.figure(figsize=(3.8, 3.5))
 for i in range(4):
-    plt.semilogy(freqs * 1e-12, nlin[i, :] * 1e-30, label=mode_names[i], marker='o', ms=2.5, lw=1)
+    plt.semilogy(freqs * 1e-12, nlin[i, :] * 1e-30, label=mode_names[i], lw=1)
 plt.xlabel(r'$f \; [\mathrm{THz}]$')
 plt.ylabel(r'$\mathrm{NLIN} \; [\mathrm{km}^2/\mathrm{ps}^{2}]$')
-plt.legend()
+plt.legend(labelspacing=0.1)
 plt.grid(grid)
 plt.tight_layout()
 plt.savefig(f"media/dispersion/nlin.png", dpi=dpi)
 # plt.show()
 
 plt.clf()
-plt.figure(figsize=(4, 3.5))
+plt.figure(figsize=(3.6, 3.4))
 for i in range(4):
-    plt.plot(freqs * 1e-12, beta1[i, :] * 1e9, label=mode_names[i], marker="o", ms=2, lw=1)
+    plt.plot(freqs * 1e-12, beta1[i, :] * 1e9, label=mode_names[i], lw=2)
 minn = np.min(beta1)
 maxx = np.max(beta1)
+#
+# WDM band edges
+plt.axvline(190.9, color="grey", ls="-.", lw=1.5)
+plt.axvline(200.9, color="grey", ls="-.", lw=1.5)
+#
+# plt.xticks([185, 193, 196, 206])
+freq_boundaries = [189, 192.7, 197, 206]
+for i, label in enumerate(['L', 'C', 'S']):
+    plt.text(freq_boundaries[i]+1, 4.8932, label, ha='center', va='bottom')
+    plt.axvline(freq_boundaries[i], color="pink", lw=1)
+#
 
-# plt.axvline(205.5, color="gray", ls="dashed" , lw=0.5)
-# plt.axvline(196.07, color="gray", ls="dashed", lw=0.5)
-# plt.axvline(191.69, color="gray", ls="dashed", lw=0.5)
-
-plt.axvline(190.9, color="grey", ls="--", lw=1.5)
-plt.axvline(200.9, color="grey", ls="--", lw=1.5)
-
-# # plt.xticks([185, 193, 196, 206])
-# freq_boundaries = [189, 192.7, 197, 206]
-# for i, label in enumerate(['L', 'C', 'S', 'E']):
-#     plt.text(freq_boundaries[i], 4.8924, label, ha='center', va='bottom')
-    
+# formatter = ScalarFormatter(useMathText=True, useOffset=True)
+# formatter.set_scientific(True)
+# formatter.set_powerlimits((-10, 10))
+# plt.gca().yaxis.set_major_formatter(formatter)
 plt.xlabel(r'$f \; [\mathrm{THz}]$')
 plt.ylabel(r'$\beta_1 [\mathrm{ns}/\mathrm{m}]$')
-# plt.legend()
+plt.ticklabel_format(axis='y', style='sci', scilimits=(0, 0), useOffset=4.89)
+
+plt.legend(labelspacing=0.1)
 # plt.grid(grid)
 plt.tight_layout()
-plt.savefig(f"media/dispersion/beta1.png", dpi=dpi)
+plt.savefig(f"media/dispersion/beta1.pdf", dpi=dpi)
 
 plt.clf()
 plt.figure(figsize=(4.6, 4))
@@ -197,8 +203,8 @@ plt.figure(figsize=(4.6, 4))
 for i in range(4):
     plt.plot(freqs * 1e-12, beta2[i, :] * 1e27, label=mode_names[i])
 plt.xlabel(r'$f \; [\mathrm{THz}]$')
-plt.ylabel(r'$\beta_2$ (ps$^2$/km)')
-plt.legend()
+plt.ylabel(r'$\beta_2$ [ps$^2$/km]')
+plt.legend(labelspacing=0.1)
 # plt.grid(grid)
 plt.tight_layout()
 plt.savefig(f"media/dispersion/beta2.png", dpi=300)
@@ -210,14 +216,14 @@ mask = (beta1_differences < 200 * 1e-12)
 hist, edges = np.histogram(np.log(beta1_differences[mask]*1e12), bins=200)
 hist = hist / 2.0
 plt.clf()
-plt.figure(figsize=(4, 3.5))
+plt.figure(figsize=(3.6, 3.4))
 plt.bar(np.power(10, edges[:-1]), hist, width=np.diff(np.power(10, edges)), zorder=3)
 plt.xlabel('DGD (ps/m)')
 plt.ylabel('channel pair count')
 plt.grid(axis='y', zorder=0)
 plt.tight_layout()
 plt.xscale('log')
-plt.savefig(f"media/dispersion/DGD_histogram.png", dpi=dpi)
+plt.savefig(f"media/dispersion/DGD_histogram.pdf", dpi=dpi)
 
 mask = (beta1_differences < 0.1 * 1e-12)
 print("Average DGD: ", np.mean(beta1_differences * 1e12))
@@ -232,28 +238,31 @@ plt.grid(axis='y', zorder=0)
 plt.tight_layout()
 plt.savefig(f"media/dispersion/DGD_histogram_zoom.png", dpi=dpi)
 
-fig = plt.figure(figsize=(5, 5))  # Overall figure size
-gs = GridSpec(nrows=3, ncols=1, height_ratios=[2, 1, 1])  # The height_ratios adjust the relative sizes
+fig = plt.figure(figsize=(3.6, 3.4))  # Overall figure size
+gs = GridSpec(nrows=2, ncols=1, height_ratios=[2, 1], hspace=0.1)  # The height_ratios adjust the relative sizes
 hist, edges = np.histogram(beta1_differences[mask]*1e12, bins=200)
 hist = hist / 2.0
 # Create subplots
 ax1 = fig.add_subplot(gs[0])  # Top subplot (smaller)
 ax2 = fig.add_subplot(gs[1])  # Bottom subplot (larger)
-ax3 = fig.add_subplot(gs[2])  # Bottom subplot (larger)
+# ax3 = fig.add_subplot(gs[2])  # Bottom subplot (larger)
 # Plot histogram on the top subplot
 ax1.bar(edges[:-1], hist, width=np.diff(edges), zorder=3)
 print("WARN: we are handling edges in a strange way!")
 edges = edges *1e-12 
 ax1.set_ylabel('channel pair count')
 ax1.grid(axis='y', zorder=0)
-ax2.plot(edges[:-1]*1e12, edges[:-1]*L/T, color='blue')
-ax2.set_ylabel(r'$m_{\mathrm{max}}$')
-ax3.semilogy(edges[:-1]*1e12, L/T / edges[:-1] * 1e-30, color='red')
-ax3.set_ylabel(r'pair NLIN [km$^2$/ps$^2$]')
-ax3.set_xlabel('DGD (ps/m)')
+ax1.set_xticklabels([])
+# ax2.plot(edges[:-1]*1e12, edges[:-1]*L/T, color='blue')
+# ax2.set_ylabel(r'$m_{\mathrm{max}}$')
+ax2.semilogy(edges[:-1]*1e12, L/T / edges[:-1] * 1e-30, color='red')
+ax2.set_ylabel(r'$N \; [\mathrm{km}^2/\mathrm{ps}^2$]')
+ax2.set_xlabel(r'$\Delta{\beta_1} [\mathrm{ps}/\mathrm{m}]$')
 # ax2.legend(loc='upper right')
-plt.tight_layout()
-plt.savefig(f"media/dispersion/DGD_collisions.png", dpi=dpi)
+plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
+# plt.tight_layout()
+plt.subplots_adjust(left=0.2, right=0.95, top=0.99, bottom=0.15, hspace=0.3)
+plt.savefig(f"media/dispersion/DGD_collisions.pdf", dpi=dpi)
 
 plt.clf()
 plt.figure(figsize=(4.6, 4))
@@ -261,8 +270,8 @@ for i in range(4):
     plt.plot(freqs * 1e12, (beta1[i, :] - beta1[1, :])
              * 1e12, label=mode_names[i])
 plt.xlabel(r'$f \; [\mathrm{THz}]$')
-plt.ylabel(r'$\Delta\beta_1$ (ps/m)')
-plt.legend()
+plt.ylabel(r'$\Delta\beta_1 \; [ps/m]$')
+plt.legend(labelspacing=0.1)
 plt.grid(grid)
 plt.tight_layout()
 plt.savefig(f"media/dispersion/DMGD_LP01.png", dpi=dpi)

@@ -39,12 +39,13 @@ for i in range(4):
     for j in range(4):
         oi[:, :, i, j] = np.mean(oi_full[:, :, polix(i)[0]:polix(i)[
             1], polix(j)[0]:polix(j)[1]], axis=(2, 3))
-        oi_avg[i, j] = np.mean(oi[:, :, i, j])
+        oi_avg[i, j] = np.mean(oi[:, :, 0, 0])
+        # oi_avg[i, j] = np.mean(oi)
         oi_max[i, j] = np.max(oi[:, :, i, j])
         oi_min[i, j] = np.min(oi[:, :, i, j])
 
 np.save('oi.npy', oi)
-np.save('oi_avg.npy', oi_avg)
+np.save('oi_avg_brutal.npy', oi_avg)
 np.save('oi_max.npy', oi_max)
 np.save('oi_min.npy', oi_min)
 

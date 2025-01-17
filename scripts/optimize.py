@@ -29,14 +29,14 @@ def ct_solver(power_per_pump,
               lock_wavelengths,
               batch_size = 1,
               use_precomputed=False,
-              optimize=False
+              optimize=False, 
+              use_avg_oi=False
               ):
   
     cf = cfg.load_toml_to_struct("./input/config.toml")
 
     oi_fit = np.load('oi_fit.npy')
     oi_avg = np.load('oi_avg.npy')
-    use_avg_oi = True
     num_original_modes = oi_avg[0].shape[0]
     matrix_avg = oi_avg
     matrix_zeros = np.tile(np.zeros((num_original_modes, num_original_modes))[
@@ -99,7 +99,7 @@ def ct_solver(power_per_pump,
             print("The precomputed values are either")
     
     print("WAT HAPPENEDDDD??")
-    print(repr(watt2dBm(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes)))))
+    print(repr(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes))))
 
     # Make the gain flat again
     # GPU + Batch
@@ -161,9 +161,9 @@ def ct_solver(power_per_pump,
     avg_gain = np.mean(watt2dBm(signal_solution[-1, :, :]))
     print("_" * 35)
     print("Pump powers ---------------- [dBm]")
-    print(repr(watt2dBm(pump_powers.reshape((cf.n_pumps, cf.n_modes)))))
+    print(repr(pump_powers.reshape((cf.n_pumps, cf.n_modes))))
     print("Initial pump powers -------- [dBm]")
-    print(repr(watt2dBm(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes)))))
+    print(repr(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes))))
     print("Pump wavelenghts ----------- [um] ")
     print(repr(pump_wavelengths*1e6))
     print("Initial pump wavelenghts --- [um]")
@@ -232,13 +232,14 @@ def plot_profiles(signal_wavelengths,
     return
 
 for _ in range(1):
-  ct_solver(power_per_pump   = dBm2watt(10.0),
+  ct_solver(power_per_pump   = 6.5,
             pump_band_a      = 1410e-9,
             pump_band_b      = 1520e-9,
-            learning_rate    = 1e-3,
-            epochs           = 200,
-            lock_wavelengths = 100,
+            learning_rate    = 1e-2,
+            epochs           = 1000,
+            lock_wavelengths = 1,
             batch_size       = 1, 
-            use_precomputed  = False,
-            optimize         = True
+            use_precomputed  = False, 
+            optimize         = True,
+            use_avg_oi       = False
             )
