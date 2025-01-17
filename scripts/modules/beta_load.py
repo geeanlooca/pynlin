@@ -12,6 +12,10 @@ from numpy import polyval
 from pynlin.fiber import MMFiber
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import ScalarFormatter
+formatter = ScalarFormatter()
+formatter.set_scientific(True)
+formatter.set_powerlimits([0, 0])
+
 import json
 rc('text', usetex=True)
 logging.basicConfig(filename='MMF_optimizer.log', encoding='utf-8', level=logging.INFO)
@@ -48,7 +52,8 @@ oi_fit = np.load('oi_fit.npy')
 oi_avg = np.load('oi_avg.npy')
 use_avg_oi = False
 
-print(f"Loading a ITU-T standardized WDM grid \n [spacing: {channel_spacing*1e-9:.3e}GHz, center: {center_frequency*1e-12:.3e}THz]\n")
+print(f"Loading a ITU-T standardized WDM grid \n 
+      [spacing: {channel_spacing*1e-9:.3e}GHz, center: {center_frequency*1e-12:.3e}THz] \n")
 # beta1_params = load_dummy_group_delay()
 beta1_params = load_group_delay()
 # beta1_params = load_dummy_group_delay()
@@ -225,7 +230,7 @@ plt.tight_layout()
 plt.xscale('log')
 plt.savefig(f"media/dispersion/DGD_histogram.pdf", dpi=dpi)
 
-mask = (beta1_differences < 0.1 * 1e-12)
+# mask = (beta1_differences < 0.1 * 1e-12)
 print("Average DGD: ", np.mean(beta1_differences * 1e12))
 hist, edges = np.histogram(beta1_differences[mask]*1e12, bins=20)
 hist = hist / 2.0
@@ -238,7 +243,7 @@ plt.grid(axis='y', zorder=0)
 plt.tight_layout()
 plt.savefig(f"media/dispersion/DGD_histogram_zoom.png", dpi=dpi)
 
-fig = plt.figure(figsize=(3.6, 3.4))  # Overall figure size
+fig = plt.figure(figsize=(3.6, 4))  # Overall figure size
 gs = GridSpec(nrows=2, ncols=1, height_ratios=[2, 1], hspace=0.1)  # The height_ratios adjust the relative sizes
 hist, edges = np.histogram(beta1_differences[mask]*1e12, bins=200)
 hist = hist / 2.0
@@ -253,6 +258,7 @@ edges = edges *1e-12
 ax1.set_ylabel('channel pair count')
 ax1.grid(axis='y', zorder=0)
 ax1.set_xticklabels([])
+ax1.yaxis.set_major_formatter(formatter)
 # ax2.plot(edges[:-1]*1e12, edges[:-1]*L/T, color='blue')
 # ax2.set_ylabel(r'$m_{\mathrm{max}}$')
 ax2.semilogy(edges[:-1]*1e12, L/T / edges[:-1] * 1e-30, color='red')
@@ -261,7 +267,7 @@ ax2.set_xlabel(r'$\Delta{\beta_1} [\mathrm{ps}/\mathrm{m}]$')
 # ax2.legend(loc='upper right')
 plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
 # plt.tight_layout()
-plt.subplots_adjust(left=0.2, right=0.95, top=0.99, bottom=0.15, hspace=0.3)
+plt.subplots_adjust(left=0.2, right=0.95, top=0.93, bottom=0.15, hspace=0.3)
 plt.savefig(f"media/dispersion/DGD_collisions.pdf", dpi=dpi)
 
 plt.clf()

@@ -95,10 +95,6 @@ avg = ((s_freq + l_freq) * 1e-12 / 2)
 # omega_n = (omega - scipy.io.loadmat(beta_file)['omega_mean']) / omega_norm
 # beta1 = np.zeros((4, len(freqs)))
 
-# for i in range(4):
-#     beta1[i, :] = (3 * mat[i, 0] * (omega_n ** 2) + 2 *
-#                    mat[i, 1] * omega_n + mat[i, 2]) / omega_norm
-
 # write the results file in ../results/general_results.h5 with the correct time integrals
 # the file contains, for each interferent channel, the values (z, m, I) of the z
 # channel of interest is set to channel 0, and interferent channel index start from 0 for simplicity
