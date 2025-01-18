@@ -60,10 +60,11 @@ def ct_solver(power_per_pump,
         num_channels=cf.n_channels,
         center_frequency=cf.center_frequency
     )
-    integration_steps = 100
+    
+    integration_steps = 1000
     z_max = np.linspace(0, fiber.length, integration_steps)
-
     np.save("z_max.npy", z_max)
+    
     print(
         f"> Running optimization for Pin = {cf.launch_power:.2e} dBm, and gain = {cf.raman_gain:.2e} dB.\n")
     if use_precomputed and os.path.exists("results/pump_solution_ct_power" + str(cf.launch_power) + "_opt_gain_" + str(cf.raman_gain) + ".npy"):
@@ -96,11 +97,8 @@ def ct_solver(power_per_pump,
             initial_pump_wavelengths = np.load("results/opt_pump_wavelengths.npy")
             initial_pump_powers = np.load("results/opt_pump_powers.npy")
         except:
-            print("The precomputed values are either")
+            print("The precomputed values misbehave...")
     
-    print("WAT HAPPENEDDDD??")
-    print(repr(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes))))
-
     # Make the gain flat again
     # GPU + Batch
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -141,9 +139,9 @@ def ct_solver(power_per_pump,
     amplifier = NumpyMMFRamanAmplifier(fiber)
     pump_powers = pump_powers.reshape((cf.n_pumps, cf.n_modes))
     pump_solution, signal_solution = amplifier.solve(
-        signal_powers,
+        dBm2watt(signal_powers),
         signal_wavelengths,
-        pump_powers,
+        dBm2watt(pump_powers),
         pump_wavelengths,
         z_max,
         fiber,
@@ -194,7 +192,7 @@ def plot_profiles(signal_wavelengths,
                  watt2dBm(signal_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.3)
     plt.ylabel(r"$P$ [dBm]")
     plt.xlabel(r"$z$ [km]")
-    plt.legend()
+    # plt.legend()
     plt.tight_layout()
     plt.grid(False)
     plt.savefig("media/signal_profile.pdf")
@@ -210,7 +208,7 @@ def plot_profiles(signal_wavelengths,
     plt.grid(False)
     plt.ylabel(r"$P$ [dBm]")
     plt.xlabel(r"$z$ [km]")
-    plt.legend()
+    # plt.legend()
     plt.tight_layout()
     plt.savefig("media/pump_profile.pdf")
 
@@ -232,14 +230,14 @@ def plot_profiles(signal_wavelengths,
     return
 
 for _ in range(1):
-  ct_solver(power_per_pump   = 6.5,
+  ct_solver(power_per_pump   = 11,
             pump_band_a      = 1410e-9,
             pump_band_b      = 1520e-9,
-            learning_rate    = 1e-2,
-            epochs           = 1000,
+            learning_rate    = 2e-2,
+            epochs           = 100,
             lock_wavelengths = 1,
-            batch_size       = 1, 
-            use_precomputed  = False, 
+            batch_size       = 1,
+            use_precomputed  = True,
             optimize         = True,
-            use_avg_oi       = False
+            use_avg_oi       = True
             )

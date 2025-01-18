@@ -27,10 +27,10 @@ def plot_illustrative(fiber, pulse, wdm):
     dgds = [1e-12, 1e-12]
     m1 = -10
     m2 = -90
-    dgd_hi = 1e-12
+    dgd_hi = 100e-15
     dgd_lo = 1e-16
-    beta2a = -35e-27  
-    beta2b = -35e-27  
+    beta2a = -75e-27  # TODO , CHECK
+    beta2b = -75e-27  
     z = np.linspace(0, fiber.length, 1000)
     # cases=[(dgd, beta2a, beta2b, m), 
     cases = [(dgd_hi, beta2a, beta2b, m1), 
@@ -39,7 +39,6 @@ def plot_illustrative(fiber, pulse, wdm):
     for dgd, beta2a, beta2b, m in cases:
         I = np.real(m_th_time_integral_general(pulse, fiber, wdm, (0, 0), (0, 0), 0.0, m, z, dgd, None, beta2a, beta2b))
         I_list.append(I)
-    I = np.real(m_th_time_integral_general(pulse, fiber, wdm, (0, 0), (0, 0), 0.0, m1, z, dgd, None, beta2a, beta2b))
     
     plt.figure(figsize=(4, 3))
     for I in I_list:
@@ -78,7 +77,7 @@ fiber = pynlin.fiber.MMFiber(
 # make the time integral take as an input (pulse, fiber, wdm)
 pulse = pynlin.pulses.GaussianPulse(
     baud_rate=cf.baud_rate,
-    num_symbols=1e2,
+    num_symbols=5e2, # CHANGING THIS SOLVES THE ALIASING PROBLEM TODO
     samples_per_symbol=2**5,
     rolloff=0.0,
 )

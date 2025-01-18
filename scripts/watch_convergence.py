@@ -7,11 +7,12 @@ import os
 from modules import cfg
 
 class SignalPlotter(FileSystemEventHandler):
-    def __init__(self, file_path):
+    def __init__(self, file_path, n_modes=2):
         self.file_path = file_path
+        self.n_modes = n_modes
         self.cf = cfg.load_toml_to_struct("./input/config.toml")
         self.fig, self.ax = plt.subplots(figsize=(4, 3))
-        self.lines = [self.ax.plot([], [], label=f"Mode {i+1}")[0] for i in range(5)]
+        self.lines = [self.ax.plot([], [], label=f"Mode {i+1}")[0] for i in range(self.n_modes+1)]
         # print the target gain on a constant line on the plot 
         self.ax.set_xlabel(r"Channel")
         self.ax.set_ylabel(r"On Off Gain [dB]")
@@ -25,7 +26,7 @@ class SignalPlotter(FileSystemEventHandler):
             signals = np.load(self.file_path)
             print(signals)
             for i, line in enumerate(self.lines):
-                if i == 4:
+                if i == self.n_modes:
                   line.set_data(range(signals.shape[0]), np.ones(signals.shape[0]) * np.mean(signals, axis=(0, 1)) + self.ref)
                 else:
                   line.set_data(range(signals.shape[0]), signals[:, i] + self.ref)
@@ -50,8 +51,8 @@ class SignalPlotter(FileSystemEventHandler):
         if event.src_path == self.file_path:
             self.update_plot()
 
-def monitor_file(file_path):
-    event_handler = SignalPlotter(file_path)
+def monitor_file(file_path, n_modes=2):
+    event_handler = SignalPlotter(file_path, n_modes=n_modes)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(file_path) or ".", recursive=False)
     observer.start()
@@ -64,4 +65,4 @@ def monitor_file(file_path):
 
 if __name__ == "__main__":
     file_path = "results/gain_walker.npy"
-    monitor_file(file_path)
+    monitor_file(file_path, n_modes=1)

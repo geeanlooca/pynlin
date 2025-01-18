@@ -405,7 +405,7 @@ def m_th_time_integral_general(
         delay = m / pulse.baud_rate + dgd * z
         g1 = apply_chromatic_dispersion(b_chan, pulse, fiber, wdm, z, gvda, 0.0)
         g2 = np.conj(g1)
-        g3 = apply_chromatic_dispersion(b_chan, pulse, fiber, wdm, z, gvdb, delay)
+        g3 = apply_chromatic_dispersion(b_chan, pulse, fiber, wdm, z, gvdb, delay) ## here may be the problem!!
         g4 = np.conj(g3)
         i_list.append(scipy.integrate.trapezoid(g1 * g2 * g3 * g4, dx=dt))
     return i_list
