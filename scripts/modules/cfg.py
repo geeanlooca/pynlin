@@ -29,3 +29,31 @@ def load_toml_to_struct(filepath: str) -> Config:
 def save_struct_to_toml(filepath: str, config: Config):
     with open(filepath, "w") as f:
         toml.dump(config.model_dump(), f)
+        
+import os
+
+
+def get_next_filename(base_name, extension):
+    """
+    Generate a unique file name by appending an incrementing numeral
+    if a file with the same name already exists.
+
+    Args:
+        base_name (str): The base name of the file (without extension).
+        extension (str): The file extension (with or without a dot).
+
+    Returns:
+        str: A unique file name.
+    """
+    if not extension.startswith('.'):
+        extension = '.' + extension
+    
+    filename = f"{base_name}{extension}"
+    counter = 1
+
+    # Check if the file already exists and increment until it's unique
+    while os.path.exists(filename):
+        filename = f"{base_name}_{counter}{extension}"
+        counter += 1
+
+    return filename
