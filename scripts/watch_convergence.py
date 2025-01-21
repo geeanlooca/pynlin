@@ -24,7 +24,6 @@ class SignalPlotter(FileSystemEventHandler):
     def update_plot(self):
         try:
             signals = np.load(self.file_path)
-            print(signals)
             for i, line in enumerate(self.lines):
                 if i == self.n_modes:
                   line.set_data(range(signals.shape[0]), np.ones(signals.shape[0]) * np.mean(signals, axis=(0, 1)) + self.ref)
@@ -65,4 +64,4 @@ def monitor_file(file_path, n_modes=2):
 
 if __name__ == "__main__":
     file_path = "results/gain_walker.npy"
-    monitor_file(file_path, n_modes=1)
+    monitor_file(file_path, n_modes=4)
