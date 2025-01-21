@@ -73,7 +73,7 @@ def ct_solver(power_per_pump, # dBm
         num_channels=cf.n_channels,
         center_frequency=cf.center_frequency
     )
-    integration_steps = 1000
+    integration_steps = 300
     z_max = np.linspace(0, fiber.length, integration_steps)
     np.save("z_max.npy", z_max)
     #
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     
     # Configuration
     recompute = True
-    signal_powers = [-10, -5, 0]
+    signal_powers = [-10]
     
     for signal_power in signal_powers:
         cf = cfg.load_toml_to_struct("./input/config.toml")
@@ -168,7 +168,7 @@ if __name__ == "__main__":
         
         if not os.path.exists(output_file) or recompute:
             pump_sol, signal_sol, ase_sol, pump_wavelengths, pump_powers = ct_solver(
-                power_per_pump   = -6,
+                power_per_pump   = -3.5,
                 pump_band_a      = 1410e-9,
                 pump_band_b      = 1520e-9,
                 learning_rate    = 1e-3,

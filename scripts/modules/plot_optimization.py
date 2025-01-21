@@ -83,7 +83,7 @@ def analyze_optimization(
   print(f"{'Optimization metric':<30} | {'Value':>10}")
   print("-" * 43)
   print(f"{'Flatness':<30} | {flatness:.5e} dB")
-  print(f"{'Loss':<30} | {approx_loss:.5e} dB")
+  print(f"{'Attenuation':<30} | {approx_loss:.5e} dB")
   try:
     ase_solution_dBm = watt2dBm(ase_solution)
     avg_ase = np.mean(ase_solution_dBm[-1, :, :])

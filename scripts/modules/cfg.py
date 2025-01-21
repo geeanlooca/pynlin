@@ -33,7 +33,10 @@ def save_struct_to_toml(filepath: str, config: Config):
 import os
 
 
-def get_next_filename(base_name, extension):
+def get_next_filename(
+  base_name, 
+  extension, 
+  active_naming=False):
     """
     Generate a unique file name by appending an incrementing numeral
     if a file with the same name already exists.
@@ -45,15 +48,19 @@ def get_next_filename(base_name, extension):
     Returns:
         str: A unique file name.
     """
-    if not extension.startswith('.'):
-        extension = '.' + extension
-    
-    filename = f"{base_name}{extension}"
-    counter = 1
+    if active_naming:
+      if not extension.startswith('.'):
+          extension = '.' + extension
+      
+      filename = f"{base_name}{extension}"
+      counter = 1
 
-    # Check if the file already exists and increment until it's unique
-    while os.path.exists(filename):
-        filename = f"{base_name}_{counter}{extension}"
-        counter += 1
-
+      # Check if the file already exists and increment until it's unique
+      while os.path.exists(filename):
+          filename = f"{base_name}_{counter}{extension}"
+          counter += 1
+    else:
+      if not extension.startswith('.'):
+          extension = '.' + extension
+      filename = f"{base_name}{extension}"
     return filename

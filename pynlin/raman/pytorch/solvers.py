@@ -646,22 +646,13 @@ class MMFRamanAmplifier(torch.nn.Module):
         gain = gain.repeat_interleave(self.n_modes, dim=1).repeat_interleave(
             self.n_modes, dim=2
         ).float()
-        # print("self.n_modes", self.n_modes)
 
-        # oi = torch.from_numpy(self.fiber.get_oi_matrix_torch(range(self.n_modes), 3e8 / total_freqs))
         oi = self.fiber.torch_oi.evaluate_oi_tensor(total_wavelenghts)
-        # oi_avg = torch.mean(oi)
-        # print(f"OI  : {oi_avg.shape}")
-        # print(f"Gain: {gain.shape}")
-        # print("\nTORCH OI: ", oi.shape)
-        # oi_numpy = oi.detach().numpy()
-        # oi = torch.from_numpy(self.overlap_integrals_avg[None, :, :].repeat(num_freqs, axis=1).repeat(num_freqs, axis=2)).float()
         G = gain * oi
-        # G = gain
+       
         raw_solution = torch_rk4(
             MMFRamanAmplifier.ode, total_power, self.z, losses, G, self.direction,
         )
-        solution=raw_solution.view(-1, num_freqs, self.n_modes)
         
         # print("-----plotting signal solutions")
         # plt.clf()
@@ -684,7 +675,6 @@ class MMFRamanAmplifier(torch.nn.Module):
         # plt.clf()
         # print("-----Done.")
         
-        signal_spectrum = solution[:, self.n_pumps:, :].clone()
         # print("*"*30)
         # print(solution)
         # print("*"*30)
@@ -695,4 +685,6 @@ class MMFRamanAmplifier(torch.nn.Module):
         # else:
         # print("signal_spectrum", signal_spectrum)
 
+        solution=raw_solution.view(-1, num_freqs, self.n_modes)
+        signal_spectrum = solution[:, self.n_pumps:, :].clone()
         return signal_spectrum
