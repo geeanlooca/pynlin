@@ -25,7 +25,7 @@ def plot_profiles(signal_wavelengths,
           plt.plot(z_plot,
                  watt2dBm(ase_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.3, ls="-.")
         except:
-          print(f"calculation without ASE.")
+          print(f"got data without ASE.")
     pass
     plt.ylabel(r"$P$ [dBm]")
     plt.xlabel(r"$z$ [km]")
@@ -91,12 +91,11 @@ def analyze_optimization(
     avg_ase = np.mean(ase_solution_dBm[-1, :, :])
     print(f"{'ASE':<30} | {avg_ase:.5e} dB")
   except:
-    print(f"calculation without ASE.")
+    print(f"got data without ASE.")
     pass
   print(f"{'Average pump power at z=0':<30} | {avg_pump_power_0:.5e} dBm")
   print(f"{'Average pump power at z=L':<30} | {avg_pump_power_L:.5e} dBm")
   print("pump configuration for copy-paste")
   print(f" ° Wavel [m] : {repr(pump_wavelengths)}")
   print(f" ° Pow. [dBm] : {repr(pump_powers)}")
-  
   return

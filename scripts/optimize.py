@@ -22,7 +22,9 @@ from pynlin.utils import dBm2watt, watt2dBm
 import pynlin.constellations
 from modules.plot_optimization import plot_profiles, analyze_optimization
 
-def ct_solver(power_per_pump, # dBm
+def ct_solver(fiber, 
+              wdm, 
+              power_per_pump, # dBm
               pump_band_a,
               pump_band_b,
               learning_rate,
@@ -47,32 +49,6 @@ def ct_solver(power_per_pump, # dBm
     """
     cf = cfg.load_toml_to_struct("./input/config.toml")
     #
-    oi_fit = np.load('oi_fit.npy')
-    oi_avg = np.load('oi_avg.npy')
-    num_original_modes = oi_avg[0].shape[0]
-    matrix_avg = oi_avg
-    matrix_zeros = np.tile(np.zeros((num_original_modes, num_original_modes))[
-                           None, :, :], (5, 1, 1))
-    oi_avg_complete = np.stack((*matrix_zeros, matrix_avg), axis=0)
-    if use_avg_oi:
-        oi_set = oi_avg_complete
-    else:
-        oi_set = oi_fit
-    oi_fit = oi_avg_complete
-
-    ref_bandwidth = cf.baud_rate
-    #
-    fiber = pynlin.fiber.MMFiber(
-        effective_area=80e-12,
-        n_modes=cf.n_modes,
-        overlap_integrals=oi_set,
-        group_delay=load_group_delay()
-    )
-    wdm = pynlin.wdm.WDM(
-        spacing=cf.channel_spacing,
-        num_channels=cf.n_channels,
-        center_frequency=cf.center_frequency
-    )
     integration_steps = 300
     z_max = np.linspace(0, fiber.length, integration_steps)
     np.save("z_max.npy", z_max)
@@ -123,7 +99,10 @@ def ct_solver(power_per_pump, # dBm
        [-20.778175 , -17.052673 ,   1.0048871,   5.156198 ],
        [-21.905903 , -19.641636 ,   8.71186  ,   0.5589079]],
       dtype=np.float32)
-    initial_pump_powers = initial_pump_powers.reshape((24,))
+    initial_pump_powers = initial_pump_powers.reshape((24,)) 
+    # to subtract to the pumps in the 0 dBm launch power setup to prevent RK4 blowup
+    if cf.launch_power == 0:
+        initial_pump_powers = initial_pump_powers - 3
     print(initial_pump_wavelengths.shape)
     print(initial_pump_powers.shape)
     # adapt to torch
@@ -165,18 +144,56 @@ def ct_solver(power_per_pump, # dBm
         fiber,
         ase=False,
         counterpumping=True,
-        reference_bandwidth=ref_bandwidth
+        reference_bandwidth=cf.baud_rate
     )
     #
     return pump_solution, signal_solution, ase_solution, pump_wavelengths, pump_powers
 
 
-if __name__ == "__main__":
-    
+def repropagate_numpy(fiber, 
+                signal_wavelengths, 
+                pump_wavelengths, 
+                pump_powers,
+                cf):
+    print("Repropagating with Numpy amplifier...")
+    amplifier = NumpyMMFRamanAmplifier(fiber)
+    pump_powers = pump_powers.reshape((cf.n_pumps, cf.n_modes))
+    integration_steps = 300
+    z_max = np.linspace(0, fiber.length, integration_steps)
+    signal_powers = np.ones_like(signal_wavelengths) * cf.launch_power
+    signal_powers = signal_powers[:, None].repeat(cf.n_modes, axis=1)
+    pump_sol, signal_sol, ase_sol = amplifier.solve( # this should work in Watt
+        dBm2watt(signal_powers),
+        signal_wavelengths,
+        dBm2watt(pump_powers),
+        pump_wavelengths,
+        z_max,
+        fiber,
+        ase=True,
+        counterpumping=True,
+        reference_bandwidth=cf.baud_rate
+    )
+    print("Done repropagation.")
+    variables_dict = {
+        name: value 
+        for name, value in locals().items() 
+        if name in ['pump_sol', 'signal_sol', 'ase_sol', 'pump_wavelengths', 'pump_powers']
+    }
+    np.save(output_file, variables_dict)
+    print("Results saved to file: ", output_file)
+    return
+
+
+if __name__ == "__main__":    
     # Configuration
-    recompute = True
+    recompute   = False
+    repropagate = True
+    use_avg_oi  = True
     # signal_powers = [-10]
-    signal_powers = [-5, 0]
+    signal_powers = [-10, -5, 0]
+  
+    oi_fit = np.load('oi_fit.npy')
+    oi_avg = np.load('oi_avg.npy')
     
     for signal_power in signal_powers:
         cf = cfg.load_toml_to_struct("./input/config.toml")
@@ -184,8 +201,36 @@ if __name__ == "__main__":
         cfg.save_struct_to_toml("./input/config.toml", cf)
         output_file = f"results/ct_solution{signal_power}_gain_{cf.raman_gain}.npy"
         
+        # prepare the definitions of fiber and wdm
+        num_original_modes = oi_avg[0].shape[0]
+        matrix_avg = oi_avg
+        matrix_zeros = np.tile(np.zeros((num_original_modes, num_original_modes))[
+                              None, :, :], (5, 1, 1))
+        oi_avg_complete = np.stack((*matrix_zeros, matrix_avg), axis=0)
+        if use_avg_oi:
+            oi_set = oi_avg_complete
+        else:
+            oi_set = oi_fit
+        oi_fit = oi_avg_complete
+        #
+        fiber = pynlin.fiber.MMFiber(
+            effective_area=80e-12,
+            n_modes=cf.n_modes,
+            overlap_integrals=oi_set,
+            group_delay=load_group_delay()
+        )
+        wdm = pynlin.wdm.WDM(
+            spacing=cf.channel_spacing,
+            num_channels=cf.n_channels,
+            center_frequency=cf.center_frequency
+        )
+        signal_wavelengths = wdm.wavelength_grid()
+        
         if not os.path.exists(output_file) or recompute:
+            raise("DO NOT OVERWRITE!!")
             pump_sol, signal_sol, ase_sol, pump_wavelengths, pump_powers = ct_solver(
+                fiber,
+                wdm, 
                 power_per_pump   = -20,
                 pump_band_a      = 1385e-9,
                 pump_band_b      = 1465e-9,
@@ -193,8 +238,8 @@ if __name__ == "__main__":
                 epochs           = 5000,
                 lock_wavelengths = 2000,
                 batch_size       = 1,
-                use_precomputed  = False,
-                optimize         = True,
+                use_precomputed  = True,
+                optimize         = True, 
                 use_avg_oi       = False
             )
             variables_dict = {
@@ -206,13 +251,18 @@ if __name__ == "__main__":
             print("Results saved to file: ", output_file)
         else:
             print(f"File {output_file} already exists. Loading data...")
+        
+        variables_dict = np.load(output_file, allow_pickle=True).item()        
+        if repropagate:
+          repropagate_numpy(
+            fiber              = fiber,
+            signal_wavelengths = signal_wavelengths,
+            pump_wavelengths   = variables_dict['pump_wavelengths'],
+            pump_powers        = variables_dict['pump_powers'],
+            cf                 = cf
+          )
         variables_dict = np.load(output_file, allow_pickle=True).item()
         
-        wdm = pynlin.wdm.WDM(
-            spacing=cf.channel_spacing,
-            num_channels=cf.n_channels,
-            center_frequency=cf.center_frequency
-        )
         plot_profiles(
             signal_wavelengths = wdm.wavelength_grid(),
             signal_solution    = variables_dict['signal_sol'],
