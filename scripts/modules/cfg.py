@@ -22,7 +22,7 @@ class Config(BaseModel):
 def load_toml_to_struct(filepath: str) -> Config:
     # with open(filepath, "rb") as f:
     data = toml.load(filepath)
-    print(data)
+    # print(data)
     return Config(**data)
 
 # Serialize a Pydantic model into a TOML file

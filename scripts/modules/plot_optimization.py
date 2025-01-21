@@ -82,5 +82,3 @@ def analyze_optimization(
   print(f"{'Average pump power at z=0':<30} | {avg_pump_power_0:.5e} dBm")
   print(f"{'Average pump power at z=L':<30} | {avg_pump_power_L:.5e} dBm")
   return
-
-  

@@ -11,10 +11,14 @@ from numpy import polyval
 from pynlin.fiber import Fiber, MMFiber
 from pynlin.raman.pytorch._torch_ode import torch_rk4
 from pynlin.raman.response import impulse_response
-from pynlin.utils import nu2lambda
+from pynlin.utils import nu2lambda, watt2dBm
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+# tmp 
+import matplotlib.pyplot as plt
+from matplotlib.cm import viridis
 
 
 class RamanAmplifier(torch.nn.Module):
@@ -22,7 +26,7 @@ class RamanAmplifier(torch.nn.Module):
         self,
         fiber_length: float,
         integration_steps: int,
-        num_pumps: int,
+        n_pumps: int,
         signal_wavelengths: Union[list, NDArray],
         power_per_channel: float,
         fiber: Fiber,
@@ -38,7 +42,7 @@ class RamanAmplifier(torch.nn.Module):
           The length of the fiber [m].
         steps : int
           The number of integration steps.
-        num_pumps : int
+        n_pumps : int
           The number of Raman pumps.
         signal_wavelength : torch.Tensor
           The input signal wavelenghts.
@@ -55,8 +59,8 @@ class RamanAmplifier(torch.nn.Module):
         super(RamanAmplifier, self).__init__()
         self.c0 = speed_of_light
         self.power_per_channel = power_per_channel
-        self.num_pumps = num_pumps
-        self.num_channels = signal_wavelengths.shape[0]
+        self.n_pumps = n_pumps
+        self.n_channels = signal_wavelengths.shape[0]
         self.signal_wavelengths = torch.from_numpy(signal_wavelengths)
         self.length = fiber_length
         self.steps = integration_steps
@@ -65,7 +69,7 @@ class RamanAmplifier(torch.nn.Module):
         if isinstance(signal_wavelengths, np.ndarray):
             signal_wavelengths = torch.from_numpy(signal_wavelengths).float()
 
-        signal_power = self.power_per_channel * torch.ones((1, self.num_channels))
+        signal_power = self.power_per_channel * torch.ones((1, self.n_channels))
 
         # limit the polynomial fit of the attenuation spectrum to order 2
         num_loss_coeffs = len(fiber.losses)
@@ -84,7 +88,7 @@ class RamanAmplifier(torch.nn.Module):
         if isinstance(signal_loss, np.ndarray):
             signal_loss = torch.from_numpy(signal_loss)
 
-        # signal_loss = signal_loss.repeat_interleave(self.modes).view(1, -1)
+        # signal_loss = signal_loss.repeat_interleave(self.n_modes).view(1, -1)
 
         self.raman_coefficient = fiber.raman_coefficient
 
@@ -126,21 +130,21 @@ class RamanAmplifier(torch.nn.Module):
         self.register_buffer("raman_response", raman_response)
 
         # # Doesn't matter, the pumps are turned off
-        # pump_lambda = torch.linspace(1420, 1480, self.num_pumps) * 1e-9
-        # pump_power = torch.zeros((num_pumps * modes))
+        # pump_lambda = torch.linspace(1420, 1480, self.n_pumps) * 1e-9
+        # pump_power = torch.zeros((n_pumps * modes))
         # x = torch.cat((pump_lambda, pump_power)).float().view(1, -1)
 
         if np.isscalar(pump_direction):
-            pump_direction = np.ones((self.num_pumps,)) * pump_direction
+            pump_direction = np.ones((self.n_pumps,)) * pump_direction
         else:
             pump_direction = np.atleast_1d(pump_direction)
-        signal_direction = np.ones((self.num_channels,))
+        signal_direction = np.ones((self.n_channels,))
         direction = np.concatenate((pump_direction, signal_direction))
         self.direction = torch.from_numpy(direction).float()
 
         # if counterpumping:
         #     self.counterpumping = True
-        #     direction[: self.num_pumps * self.modes] = -1
+        #     direction[: self.n_pumps * self.n_modes] = -1
         # else:
         #     self.counterpumping = False
 
@@ -237,7 +241,7 @@ class RamanAmplifier(torch.nn.Module):
 
         batch_size = x.shape[0]
 
-        num_freqs = self.num_channels + self.num_pumps
+        num_freqs = self.n_channels + self.n_pumps
 
         # This will be the input to the interpolation function
         interpolation_grid = torch.zeros(
@@ -246,7 +250,7 @@ class RamanAmplifier(torch.nn.Module):
             device=x.device,
         )
 
-        pump_wavelengths = x[:, : self.num_pumps]
+        pump_wavelengths = x[:, : self.n_pumps]
 
         # Compute the loss for each pump wavelength/mode
         pump_loss = self._alpha_to_linear(
@@ -259,7 +263,7 @@ class RamanAmplifier(torch.nn.Module):
         losses = torch.cat(
             (
                 pump_loss,
-                self.signal_loss.expand(batch_size, self.num_channels),
+                self.signal_loss.expand(batch_size, self.n_channels),
             ),
             dim=1,
         )
@@ -269,15 +273,15 @@ class RamanAmplifier(torch.nn.Module):
         pump_freqs = self._lambda2frequency(pump_wavelengths)
 
         total_freqs = torch.cat(
-            (pump_freqs, self.signal_frequency.expand(batch_size, self.num_channels)),
+            (pump_freqs, self.signal_frequency.expand(batch_size, self.n_channels)),
             dim=1,
         )
 
         # Concatenate input pump power and signal power, making sure power > 0
         total_power = torch.cat(
             (
-                x[:, self.num_pumps:],
-                self.signal_power.expand(batch_size, self.num_channels),
+                x[:, self.n_pumps:],
+                self.signal_power.expand(batch_size, self.n_channels),
             ),
             1,
         )
@@ -323,13 +327,13 @@ class RamanAmplifier(torch.nn.Module):
 
         signal_spectrum = solution[
             :,
-            self.num_pumps:,
+            self.n_pumps:,
         ].clone()
 
         return signal_spectrum
 
         # if self.counterpumping:
-        #     pump_initial_power = solution[:, : self.num_pumps].clone()
+        #     pump_initial_power = solution[:, : self.n_pumps].clone()
         #     return signal_spectrum, pump_initial_power
         # else:
         #     return signal_spectrum
@@ -340,7 +344,7 @@ class MMFRamanAmplifier(torch.nn.Module):
         self,
         length,
         steps,
-        num_pumps,
+        n_pumps,
         signal_wavelength,
         power_per_channel,
         fiber: MMFiber,
@@ -356,7 +360,7 @@ class MMFRamanAmplifier(torch.nn.Module):
           The length of the fiber [m].
         steps : int
           The number of integration steps.
-        num_pumps : int
+        n_pumps : int
           The number of Raman pumps.
         signal_wavelength : torch.Tensor
           The input signal wavelenghts.
@@ -373,13 +377,13 @@ class MMFRamanAmplifier(torch.nn.Module):
         super(MMFRamanAmplifier, self).__init__()
         self.c0 = speed_of_light
         self.power_per_channel = power_per_channel
-        self.num_pumps = num_pumps
-        self.num_channels = signal_wavelength.shape[0]
-        self.modes = fiber.n_modes
+        self.n_pumps = n_pumps
+        self.n_channels = signal_wavelength.shape[0]
+        self.n_modes = fiber.n_modes
         self.length = length
         self.steps = steps
         self.fiber = fiber
-        self.overlap_integrals = fiber.overlap_integrals[:, :self.modes, :self.modes]
+        self.overlap_integrals = fiber.overlap_integrals[:, :self.n_modes, :self.n_modes]
         overlap_integrals_tensor = torch.Tensor(fiber.overlap_integrals).float()
 
         z = torch.linspace(0, self.length, self.steps)
@@ -388,7 +392,7 @@ class MMFRamanAmplifier(torch.nn.Module):
             signal_wavelength = torch.from_numpy(signal_wavelength).float()
 
         signal_power = self.power_per_channel * torch.ones(
-            (1, self.num_channels * self.modes)
+            (1, self.n_channels * self.n_modes)
         )
 
         # limit the polynomial fit of the attenuation spectrum to order 2
@@ -404,7 +408,7 @@ class MMFRamanAmplifier(torch.nn.Module):
         if isinstance(signal_loss, np.ndarray):
             signal_loss = torch.from_numpy(signal_loss)
 
-        signal_loss = signal_loss.repeat_interleave(self.modes).view(1, -1)
+        signal_loss = signal_loss.repeat_interleave(self.n_modes).view(1, -1)
 
         self.raman_coefficient = fiber.raman_coefficient
 
@@ -446,17 +450,17 @@ class MMFRamanAmplifier(torch.nn.Module):
         self.register_buffer("raman_response", raman_response)
 
         # Doesn't matter, the pumps are turned off
-        pump_lambda = torch.linspace(1420, 1480, self.num_pumps) * 1e-9
-        pump_power = torch.zeros((num_pumps * self.modes))
+        pump_lambda = torch.linspace(1420, 1480, self.n_pumps) * 1e-9
+        pump_power = torch.zeros((n_pumps * self.n_modes))
         x = torch.cat((pump_lambda, pump_power)).float().view(1, -1)
 
         direction = torch.ones(
-            ((self.num_pumps + self.num_channels) * self.modes,)
+            ((self.n_pumps + self.n_channels) * self.n_modes,)
         ).float()
 
         if counterpumping:
             self.counterpumping = True
-            direction[: self.num_pumps * self.modes] = -1
+            direction[: self.n_pumps * self.n_modes] = -1
         else:
             self.counterpumping = False
 
@@ -549,25 +553,24 @@ class MMFRamanAmplifier(torch.nn.Module):
         signal_spectrum: torch.Tensor
           signal powers on each mode (B, N_signals, N_modes)
         """
-
         batch_size = x.shape[0]
-        num_freqs = self.num_channels + self.num_pumps
+        num_freqs = self.n_channels + self.n_pumps
 
         interpolation_grid = torch.zeros(
             (batch_size, 1, num_freqs ** 2, 2), dtype=x.dtype, device=x.device,
         )
-        pump_wavelengths = x[:, : self.num_pumps]
+        pump_wavelengths = x[:, : self.n_pumps]
 
         pump_loss = self._alpha_to_linear(
             self.loss_coefficients[2]
             + self.loss_coefficients[1] * pump_wavelengths
             + self.loss_coefficients[0] * (pump_wavelengths) ** 2
-        ).repeat_interleave(self.modes, dim=1)
+        ).repeat_interleave(self.n_modes, dim=1)
 
         losses = torch.cat(
             (
                 pump_loss,
-                self.signal_loss.expand(batch_size, self.num_channels * self.modes),
+                self.signal_loss.expand(batch_size, self.n_channels * self.n_modes),
             ),
             dim=1,
         )
@@ -577,7 +580,7 @@ class MMFRamanAmplifier(torch.nn.Module):
         pump_freqs = self._lambda2frequency(pump_wavelengths)
 
         total_freqs = torch.cat(
-            (pump_freqs, self.signal_frequency.expand(batch_size, self.num_channels)),
+            (pump_freqs, self.signal_frequency.expand(batch_size, self.n_channels)),
             dim=1,
         )
         total_wavelenghts = self._frequency2lambda(total_freqs)
@@ -585,8 +588,8 @@ class MMFRamanAmplifier(torch.nn.Module):
         # I don't want to allow for negative values of the pump power in the optimizer
         total_power = torch.cat(
             (
-                x[:, self.num_pumps:],
-                self.signal_power.expand(batch_size, self.num_channels * self.modes),
+                x[:, self.n_pumps:],
+                self.signal_power.expand(batch_size, self.n_channels * self.n_modes),
             ),
             1,
         )
@@ -634,18 +637,18 @@ class MMFRamanAmplifier(torch.nn.Module):
                 +---------+---------+
                 
         mantain the same topology?
-        gain = gain.repeat_interleave(self.modes, dim=1).repeat_interleave(
-        self.modes, dim=2
+        gain = gain.repeat_interleave(self.n_modes, dim=1).repeat_interleave(
+        self.n_modes, dim=2
         )
             beware, dim = 0 is the batch dimension
         """
 
-        gain = gain.repeat_interleave(self.modes, dim=1).repeat_interleave(
-            self.modes, dim=2
+        gain = gain.repeat_interleave(self.n_modes, dim=1).repeat_interleave(
+            self.n_modes, dim=2
         ).float()
-        # print("self.modes", self.modes)
+        # print("self.n_modes", self.n_modes)
 
-        # oi = torch.from_numpy(self.fiber.get_oi_matrix_torch(range(self.modes), 3e8 / total_freqs))
+        # oi = torch.from_numpy(self.fiber.get_oi_matrix_torch(range(self.n_modes), 3e8 / total_freqs))
         oi = self.fiber.torch_oi.evaluate_oi_tensor(total_wavelenghts)
         # oi_avg = torch.mean(oi)
         # print(f"OI  : {oi_avg.shape}")
@@ -655,16 +658,39 @@ class MMFRamanAmplifier(torch.nn.Module):
         # oi = torch.from_numpy(self.overlap_integrals_avg[None, :, :].repeat(num_freqs, axis=1).repeat(num_freqs, axis=2)).float()
         G = gain * oi
         # G = gain
-        solution = torch_rk4(
+        raw_solution = torch_rk4(
             MMFRamanAmplifier.ode, total_power, self.z, losses, G, self.direction,
-        ).view(-1, num_freqs, self.modes)
-        signal_spectrum = solution[:, self.num_pumps:, :].clone()
+        )
+        solution=raw_solution.view(-1, num_freqs, self.n_modes)
+        
+        # print("-----plotting signal solutions")
+        # plt.clf()
+        # plt.figure(figsize=(4, 3))
+        # cmap = viridis
+        # signals = watt2dBm(raw_solution.detach().numpy())
+        # print(signals)
+        # z_plot = np.linspace(0, self.fiber.length, len(signals[:, 0, 0])) * 1e-3
+        # # lss = ["-", "--", "-.", ":", "-"]
+        # mode_labels = ["LP01", "LP11", "LP21", "LP02"]
+        # for i in range(self.n_modes):
+        #     plt.plot(z_plot,
+        #             signals[0, :, :, i], color=cmap(i / self.n_modes + 0.2), alpha=0.3)
+        # plt.ylabel(r"$P$ [dBm]")
+        # plt.xlabel(r"$z$ [km]")
+        # # plt.legend()
+        # plt.tight_layout()
+        # plt.grid(False)
+        # plt.savefig("media/optimization/signal_INNER_profile.png")
+        # plt.clf()
+        # print("-----Done.")
+        
+        signal_spectrum = solution[:, self.n_pumps:, :].clone()
         # print("*"*30)
         # print(solution)
         # print("*"*30)
 
         # if self.counterpumping:
-        #   pump_initial_power = solution[:, : self.num_pumps, :].clone()
+        #   pump_initial_power = solution[:, : self.n_pumps, :].clone()
         #   return signal_spectrum, pump_initial_power
         # else:
         # print("signal_spectrum", signal_spectrum)

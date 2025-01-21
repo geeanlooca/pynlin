@@ -30,7 +30,7 @@ def torch_rk4(func, y0, t, *args, **kwargs):
         new_state = y + 1 / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
 
         if torch.isnan(new_state).any() or torch.isinf(new_state).any():
-
+            print("\033[41mWARN:\033[0m failure detected in RK4 propagation")
             return y
 
         y = new_state

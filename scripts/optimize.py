@@ -175,7 +175,7 @@ def ct_solver(power_per_pump,
 
 
 if __name__ == "__main__":
-    recompute = False  # Set to True to force re-computation
+    recompute = True  # Set to True to force re-computation
     signal_powers = [-10, -5, 0]
     
     for ix in range(3):
@@ -190,8 +190,8 @@ if __name__ == "__main__":
                 power_per_pump   = 6,
                 pump_band_a      = 1410e-9,
                 pump_band_b      = 1520e-9,
-                learning_rate    = 1e-2,
-                epochs           = 1500,
+                learning_rate    = 1e-3,
+                epochs           = 4,
                 lock_wavelengths = 200,
                 batch_size       = 1,
                 use_precomputed  = False,
