@@ -20,8 +20,12 @@ def plot_profiles(signal_wavelengths,
     for i in range(cf.n_modes):
         plt.plot(z_plot,
                  watt2dBm(signal_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.3)
-        plt.plot(z_plot,
+        try:
+          plt.plot(z_plot,
                  watt2dBm(ase_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.3, ls="-.")
+        except:
+          print(f"calculation without ASE.")
+    pass
     plt.ylabel(r"$P$ [dBm]")
     plt.xlabel(r"$z$ [km]")
     # plt.legend()
@@ -62,23 +66,31 @@ def plot_profiles(signal_wavelengths,
     print(f"Plot saved.")
     return
 
+
 def analyze_optimization(
   signal_wavelengths, 
-  signal_solution,
-  ase_solution,
+  signal_solution, # in Watt
+  ase_solution, # in Watt
   pump_wavelengths,
-  pump_solution,
+  pump_solution, # in Watt
   cf):
-  flatness = np.max(signal_solution[-1, :, :]) - np.min(signal_solution[-1, :, :])
+  signal_solution_dBm = watt2dBm(signal_solution)
+  pump_solution_dBm = watt2dBm(pump_solution)
+  flatness = np.max(signal_solution_dBm[-1, :, :]) - np.min(signal_solution_dBm[-1, :, :])
   approx_loss = -0.2e-3 * cf.fiber_length
-  avg_ase = np.mean(ase_solution[-1, :, :])
-  avg_pump_power_0 = np.mean(pump_solution[0, :, :])
-  avg_pump_power_L = np.mean(pump_solution[-1, :, :])
+  avg_pump_power_0 = np.mean(pump_solution_dBm[0, :, :])
+  avg_pump_power_L = np.mean(pump_solution_dBm[-1, :, :])
   print(f"{'Optimization metric':<30} | {'Value':>10}")
   print("-" * 43)
   print(f"{'Flatness':<30} | {flatness:.5e} dB")
   print(f"{'Loss':<30} | {approx_loss:.5e} dB")
-  print(f"{'ASE':<30} | {avg_ase:.5e} dB")
+  try:
+    ase_solution_dBm = watt2dBm(ase_solution)
+    avg_ase = np.mean(ase_solution_dBm[-1, :, :])
+    print(f"{'ASE':<30} | {avg_ase:.5e} dB")
+  except:
+    print(f"calculation without ASE.")
+    pass
   print(f"{'Average pump power at z=0':<30} | {avg_pump_power_0:.5e} dBm")
   print(f"{'Average pump power at z=L':<30} | {avg_pump_power_L:.5e} dBm")
   return

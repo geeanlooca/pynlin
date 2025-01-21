@@ -42,9 +42,10 @@ class GainOptimizer(nn.Module):
 
     def forward(self, wavelengths: torch.Tensor, powers: torch.Tensor) -> torch.Tensor:
         """Compute the output spectrum of the Raman amplifier given pump
-        parameters."""
+        parameters.
+        All power units in this function are in Watt."""
         x = torch.cat((wavelengths, powers)).view(1, -1).float().repeat(self.batch_size, 1)
-        return dBm(self.raman_solver(x).float())
+        return self.raman_solver(x).float()
 
     def scale(
         self, x: torch.Tensor
@@ -105,12 +106,9 @@ class GainOptimizer(nn.Module):
                 pump_wavelengths = self.unscale(
                     self.pump_wavelengths, *self.wavelength_scaling
                 )
-                signal_spectrum = self.forward(
-                    pump_wavelengths, watt(self.pump_powers)*0.1)
-                # print("*"*30)
-                # print(signal_spectrum) 
-                # print("*"*30)
-                loss = loss_function(signal_spectrum, _target_spectrum)
+                signal_spectrum = dBm(self.forward( # the physics works in Watt
+                    pump_wavelengths, watt(self.pump_powers)))
+                loss = loss_function(signal_spectrum, _target_spectrum) # the loss function is in dBm
                 loss.backward()
                 torch_optimizer.step()
                 torch_optimizer.zero_grad()

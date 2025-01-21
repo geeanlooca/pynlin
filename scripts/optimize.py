@@ -22,7 +22,7 @@ from pynlin.utils import dBm2watt, watt2dBm
 import pynlin.constellations
 from modules.plot_optimization import plot_profiles, analyze_optimization
 
-def ct_solver(power_per_pump,
+def ct_solver(power_per_pump, # dBm
               pump_band_a,
               pump_band_b,
               learning_rate,
@@ -88,18 +88,13 @@ def ct_solver(power_per_pump,
     initial_pump_frequencies = lambda2nu(
         np.linspace(pump_band_a, pump_band_b, cf.n_pumps))
     #
-    power_per_channel = dBm2watt(cf.launch_power)
     signal_wavelengths = wdm.wavelength_grid()
-    initial_pump_wavelengths = nu2lambda(initial_pump_frequencies[:cf.n_pumps])
-    #
-    initial_pump_powers = np.ones_like(initial_pump_wavelengths) * power_per_pump
-    initial_pump_powers = initial_pump_powers.repeat(cf.n_modes, axis=0)
     torch_amplifier_ct = MMFRamanAmplifier(
         fiber.length,
         integration_steps,
         cf.n_pumps,
         signal_wavelengths,
-        power_per_channel,
+        dBm2watt(cf.launch_power), # W
         fiber,
         counterpumping=True
     )
@@ -112,19 +107,22 @@ def ct_solver(power_per_pump,
             print("The precomputed values misbehave...")
     #
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    initial_pump_wavelengths = nu2lambda(initial_pump_frequencies[:cf.n_pumps])
+    initial_pump_powers = np.ones_like(initial_pump_wavelengths) * power_per_pump
+    initial_pump_powers = initial_pump_powers.repeat(cf.n_modes, axis=0)
     initial_pump_wavelengths_tensor = torch.from_numpy(initial_pump_wavelengths).to(device)
     initial_pump_powers_tensor =           torch.from_numpy(initial_pump_powers).to(device)
     #
     optimizer = GainOptimizer(
         torch_amplifier_ct,
         initial_pump_wavelengths_tensor,
-        initial_pump_powers_tensor,
+        initial_pump_powers_tensor, # in dBm
         batch_size=batch_size
     )
-    #
-    signal_powers = np.ones_like(signal_wavelengths) * power_per_channel
+    # all in dBm here
+    signal_powers = np.ones_like(signal_wavelengths) * cf.launch_power
     signal_powers = signal_powers[:, None].repeat(cf.n_modes, axis=1)
-    target_spectrum = watt2dBm(signal_powers)[None, :, :] + cf.raman_gain
+    target_spectrum = signal_powers[None, :, :] + cf.raman_gain
     #
     if optimize:
         pump_wavelengths, pump_powers = optimizer.optimize(
@@ -135,51 +133,34 @@ def ct_solver(power_per_pump,
         )
         np.save("results/opt_pump_wavelengths.npy", pump_wavelengths)
         np.save("results/opt_pump_powers.npy", pump_powers)
-        print("--" * 30)
     else:
         pump_wavelengths = initial_pump_wavelengths
         pump_powers = initial_pump_powers
     #
     amplifier = NumpyMMFRamanAmplifier(fiber)
     pump_powers = pump_powers.reshape((cf.n_pumps, cf.n_modes))
-    pump_solution, signal_solution, ase_solution = amplifier.solve(
+    pump_solution, signal_solution, ase_solution = amplifier.solve( # this should work in Watt
         dBm2watt(signal_powers),
         signal_wavelengths,
         dBm2watt(pump_powers),
         pump_wavelengths,
         z_max,
         fiber,
-        ase=True,
+        ase=False,
         counterpumping=True,
         reference_bandwidth=ref_bandwidth
     )
-    flatness = np.max(
-        watt2dBm(signal_solution[-1, :, :])) - watt2dBm(np.min(signal_solution[-1, :, :]))
-    loss = -0.2e-3 * cf.fiber_length
-    on_off_gain = -loss + cf.raman_gain
-    flatness_percent = flatness / on_off_gain * 100
     #
-    print("_" * 35)
-    print("Pump powers ---------------- [dBm]")
-    print(repr(pump_powers.reshape((cf.n_pumps, cf.n_modes))))
-    print("Initial pump powers -------- [dBm]")
-    print(repr(initial_pump_powers.reshape((cf.n_pumps, cf.n_modes))))
-    print("Pump wavelenghts ----------- [um] ")
-    print(repr(pump_wavelengths*1e6))
-    print("Initial pump wavelenghts --- [um]")
-    print(repr(initial_pump_wavelengths*1e6))
-    print("_" * 35)
-    print(f"> final flatness: {flatness:.2f} dB | {flatness_percent:.2f} %")
-    print("_" * 35)
     return pump_solution, signal_solution, ase_solution, pump_wavelengths, pump_powers
 
 
 if __name__ == "__main__":
-    recompute = True  # Set to True to force re-computation
+    
+    # Configuration
+    recompute = True
     signal_powers = [-10, -5, 0]
     
-    for ix in range(3):
-        signal_power = signal_powers[ix]
+    for signal_power in signal_powers:
         cf = cfg.load_toml_to_struct("./input/config.toml")
         cf.launch_power = signal_power
         cfg.save_struct_to_toml("./input/config.toml", cf)
@@ -187,18 +168,17 @@ if __name__ == "__main__":
         
         if not os.path.exists(output_file) or recompute:
             pump_sol, signal_sol, ase_sol, pump_wavelengths, pump_powers = ct_solver(
-                power_per_pump   = 6,
+                power_per_pump   = -6,
                 pump_band_a      = 1410e-9,
                 pump_band_b      = 1520e-9,
                 learning_rate    = 1e-3,
-                epochs           = 4,
+                epochs           = 1000,
                 lock_wavelengths = 200,
                 batch_size       = 1,
                 use_precomputed  = False,
                 optimize         = True,
                 use_avg_oi       = True
             )
-            print(" -> average ASE at the end: ", np.mean(ase_sol[-1, :, :]))
             variables_dict = {
                 name: value 
                 for name, value in locals().items() 

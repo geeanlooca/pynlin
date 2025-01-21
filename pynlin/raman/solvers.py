@@ -785,7 +785,7 @@ class MMFRamanAmplifier(RamanAmplifier):
 
                 pump_solution = sol[:, :num_pumps, :]
                 signal_solution = sol[:, num_pumps:, :]
-            return pump_solution, signal_solution
+            return pump_solution, signal_solution, np.array([])
         else:
             direction = np.ones(((total_wavelengths + num_signals) * fiber.n_modes,))
 
