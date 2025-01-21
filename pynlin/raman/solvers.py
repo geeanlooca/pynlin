@@ -791,9 +791,11 @@ class MMFRamanAmplifier(RamanAmplifier):
 
             # Compute the phonon occupancy factor
             Hinv = np.exp(h_planck * np.abs(frequency_shifts) / (kB * temperature)) - 1
-
+            # FIXME evidentemente stiamo considerando onde che hanno la stessa frequenza. Dobbiamo 
+            # sommare l'effetto solo sullo stesso modo, e lasciare che il coupling misceli tutto.
             eta = 1 + 1 / Hinv
             np.fill_diagonal(eta, 0)
+            # print(eta)
             eta = np.repeat(np.repeat(eta, fiber.n_modes, axis=0), fiber.n_modes, axis=1)
 
             # Compute the new Raman gain matrix

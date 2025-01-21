@@ -188,42 +188,47 @@ if __name__ == "__main__":
     # Configuration
     recompute   = False
     repropagate = True
-    use_avg_oi  = True
+    use_avg_oi  = False
     # signal_powers = [-10]
-    signal_powers = [-10, -5, 0]
+    signal_powers = [0, -5, -10]
+    # -10 -> true
+    # -5  -> true OI
+    # 0   -> true OI
   
     oi_fit = np.load('oi_fit.npy')
     oi_avg = np.load('oi_avg.npy')
+   
+    # prepare the definitions of fiber and wdm
+    cf = cfg.load_toml_to_struct("./input/config.toml")
+    num_original_modes = oi_avg[0].shape[0]
+    matrix_avg = oi_avg
+    matrix_zeros = np.tile(np.zeros((num_original_modes, num_original_modes))[
+                          None, :, :], (5, 1, 1))
+    oi_avg_complete = np.stack((*matrix_zeros, matrix_avg), axis=0)
+    if use_avg_oi:
+        oi_set = oi_avg_complete
+    else:
+        oi_set = oi_fit
+    oi_fit = oi_avg_complete
+    #
+    fiber = pynlin.fiber.MMFiber(
+        effective_area=80e-12,
+        n_modes=cf.n_modes,
+        overlap_integrals=oi_set,
+        group_delay=load_group_delay()
+    )
+    wdm = pynlin.wdm.WDM(
+        spacing=cf.channel_spacing,
+        num_channels=cf.n_channels,
+        center_frequency=cf.center_frequency
+    )
     
     for signal_power in signal_powers:
-        cf = cfg.load_toml_to_struct("./input/config.toml")
         cf.launch_power = signal_power
         cfg.save_struct_to_toml("./input/config.toml", cf)
         output_file = f"results/ct_solution{signal_power}_gain_{cf.raman_gain}.npy"
         
-        # prepare the definitions of fiber and wdm
-        num_original_modes = oi_avg[0].shape[0]
-        matrix_avg = oi_avg
-        matrix_zeros = np.tile(np.zeros((num_original_modes, num_original_modes))[
-                              None, :, :], (5, 1, 1))
-        oi_avg_complete = np.stack((*matrix_zeros, matrix_avg), axis=0)
-        if use_avg_oi:
-            oi_set = oi_avg_complete
-        else:
-            oi_set = oi_fit
-        oi_fit = oi_avg_complete
-        #
-        fiber = pynlin.fiber.MMFiber(
-            effective_area=80e-12,
-            n_modes=cf.n_modes,
-            overlap_integrals=oi_set,
-            group_delay=load_group_delay()
-        )
-        wdm = pynlin.wdm.WDM(
-            spacing=cf.channel_spacing,
-            num_channels=cf.n_channels,
-            center_frequency=cf.center_frequency
-        )
+
         signal_wavelengths = wdm.wavelength_grid()
         
         if not os.path.exists(output_file) or recompute:
