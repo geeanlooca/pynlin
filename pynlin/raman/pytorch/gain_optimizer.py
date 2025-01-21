@@ -107,7 +107,7 @@ class GainOptimizer(nn.Module):
                     self.pump_wavelengths, *self.wavelength_scaling
                 )
                 signal_spectrum = dBm(self.forward( # the physics works in Watt
-                    pump_wavelengths, watt(self.pump_powers))) # FIXME : where are the signals
+                    pump_wavelengths, watt(self.pump_powers))) # FIXME : where are the signal
                 loss = loss_function(signal_spectrum, _target_spectrum) # the loss function is in dBm
                 loss.backward()
                 torch_optimizer.step()

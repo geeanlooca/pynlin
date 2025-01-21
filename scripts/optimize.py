@@ -107,9 +107,26 @@ def ct_solver(power_per_pump, # dBm
             print("The precomputed values misbehave...")
     #
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    #
+    ## trivial initializaiton
     initial_pump_wavelengths = nu2lambda(initial_pump_frequencies[:cf.n_pumps])
     initial_pump_powers = np.ones_like(initial_pump_wavelengths) * power_per_pump
     initial_pump_powers = initial_pump_powers.repeat(cf.n_modes, axis=0)
+    print(initial_pump_wavelengths.shape)
+    print(initial_pump_powers.shape)
+    ## initialize to the configuration that is not bad
+    initial_pump_wavelengths = np.array([1.3844927e-06, 1.3975118e-06, 1.4131243e-06, 1.4286949e-06, 1.4559689e-06, 1.4575429e-06], dtype=np.float32)
+    initial_pump_powers = np.array([[-31.527662 , -32.781242 , -15.580993 , -18.018877 ],
+       [-25.519464 , -23.685694 , -10.617271 , -13.667908 ],
+       [-24.974928 , -23.210556 ,  -6.3097696,  -9.496441 ],
+       [-25.57634  , -22.774395 ,  -1.7358053,  -4.677509 ],
+       [-20.778175 , -17.052673 ,   1.0048871,   5.156198 ],
+       [-21.905903 , -19.641636 ,   8.71186  ,   0.5589079]],
+      dtype=np.float32)
+    initial_pump_powers = initial_pump_powers.reshape((24,))
+    print(initial_pump_wavelengths.shape)
+    print(initial_pump_powers.shape)
+    # adapt to torch
     initial_pump_wavelengths_tensor = torch.from_numpy(initial_pump_wavelengths).to(device)
     initial_pump_powers_tensor =           torch.from_numpy(initial_pump_powers).to(device)
     #
@@ -159,7 +176,7 @@ if __name__ == "__main__":
     # Configuration
     recompute = True
     # signal_powers = [-10]
-    signal_powers = [-10, -5, 0]
+    signal_powers = [-5, 0]
     
     for signal_power in signal_powers:
         cf = cfg.load_toml_to_struct("./input/config.toml")
@@ -169,14 +186,14 @@ if __name__ == "__main__":
         
         if not os.path.exists(output_file) or recompute:
             pump_sol, signal_sol, ase_sol, pump_wavelengths, pump_powers = ct_solver(
-                power_per_pump   = -2.2,
+                power_per_pump   = -20,
                 pump_band_a      = 1385e-9,
                 pump_band_b      = 1465e-9,
                 learning_rate    = 5e-2,
                 epochs           = 5000,
-                lock_wavelengths = 3000,
+                lock_wavelengths = 2000,
                 batch_size       = 1,
-                use_precomputed  = True,
+                use_precomputed  = False,
                 optimize         = True,
                 use_avg_oi       = False
             )
@@ -201,6 +218,7 @@ if __name__ == "__main__":
             signal_solution    = variables_dict['signal_sol'],
             ase_solution       = variables_dict['ase_sol'],
             pump_wavelengths   = variables_dict['pump_wavelengths'],
+            pump_powers        = variables_dict['pump_powers'],
             pump_solution      = variables_dict['pump_sol'],
             cf                 = cf
         )
@@ -210,5 +228,6 @@ if __name__ == "__main__":
             ase_solution       = variables_dict['ase_sol'],
             pump_wavelengths   = variables_dict['pump_wavelengths'],
             pump_solution      = variables_dict['pump_sol'],
+            pump_powers        = variables_dict['pump_powers'],
             cf                 = cf
         )

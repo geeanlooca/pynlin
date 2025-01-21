@@ -36,7 +36,7 @@ import os
 def get_next_filename(
   base_name, 
   extension, 
-  active_naming=False):
+  active_naming=True):
     """
     Generate a unique file name by appending an incrementing numeral
     if a file with the same name already exists.

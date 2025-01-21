@@ -10,6 +10,7 @@ def plot_profiles(signal_wavelengths,
                   ase_solution,
                   pump_wavelengths,
                   pump_solution,
+                  pump_powers,
                   cf: Config):
     plt.clf()
     plt.figure(figsize=(4, 3))
@@ -73,6 +74,7 @@ def analyze_optimization(
   ase_solution, # in Watt
   pump_wavelengths,
   pump_solution, # in Watt
+  pump_powers, # in Watt
   cf):
   signal_solution_dBm = watt2dBm(signal_solution)
   pump_solution_dBm = watt2dBm(pump_solution)
@@ -93,4 +95,8 @@ def analyze_optimization(
     pass
   print(f"{'Average pump power at z=0':<30} | {avg_pump_power_0:.5e} dBm")
   print(f"{'Average pump power at z=L':<30} | {avg_pump_power_L:.5e} dBm")
+  print("pump configuration for copy-paste")
+  print(f" ° Wavel [m] : {repr(pump_wavelengths)}")
+  print(f" ° Pow. [dBm] : {repr(pump_powers)}")
+  
   return
