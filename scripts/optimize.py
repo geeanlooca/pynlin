@@ -158,8 +158,8 @@ if __name__ == "__main__":
     
     # Configuration
     recompute = True
-    signal_powers = [-10]
-    # signal_powers = [-10, -5, 0]
+    # signal_powers = [-10]
+    signal_powers = [-10, -5, 0]
     
     for signal_power in signal_powers:
         cf = cfg.load_toml_to_struct("./input/config.toml")
@@ -173,8 +173,8 @@ if __name__ == "__main__":
                 pump_band_a      = 1385e-9,
                 pump_band_b      = 1465e-9,
                 learning_rate    = 5e-2,
-                epochs           = 1500,
-                lock_wavelengths = 1500,
+                epochs           = 5000,
+                lock_wavelengths = 3000,
                 batch_size       = 1,
                 use_precomputed  = True,
                 optimize         = True,
