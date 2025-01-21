@@ -60,7 +60,7 @@ def plot_profiles(signal_wavelengths,
     plt.legend()
     plt.axhline(on_off_gain, ls="--", color="black")
     plt.xlabel(r"Channel Wavelength [$\mu$ m]")
-    plt.ylabel("Gain [dB]")
+    plt.ylabel("On Off Gain [dB]")
     plt.tight_layout()
     plt.savefig(get_next_filename("media/optimization/flatness", "pdf"))
     print(f"Plot saved.")

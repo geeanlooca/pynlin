@@ -5,6 +5,7 @@ from watchdog.events import FileSystemEventHandler
 import time
 import os
 from modules import cfg
+from pynlin.utils import nu2lambda
 
 class SignalPlotter(FileSystemEventHandler):
     def __init__(self, file_path, n_modes=2):
@@ -14,7 +15,8 @@ class SignalPlotter(FileSystemEventHandler):
         self.fig, self.ax = plt.subplots(figsize=(4, 3))
         self.lines = [self.ax.plot([], [], label=f"Mode {i+1}")[0] for i in range(self.n_modes+1)]
         # print the target gain on a constant line on the plot 
-        self.ax.set_xlabel(r"Channel")
+        self.x_axis = 1e6*nu2lambda(np.linspace(self.cf.center_frequency - self.cf.channel_spacing * self.cf.n_channels / 2, self.cf.center_frequency + self.cf.channel_spacing * self.cf.n_channels / 2, self.cf.n_channels))
+        self.ax.set_xlabel(r"Channel wavelength [$\mu m$]")
         self.ax.set_ylabel(r"On Off Gain [dB]")
         self.ref = - self.cf.launch_power + 0.2e-3 * self.cf.fiber_length
         plt.tight_layout()
@@ -26,15 +28,15 @@ class SignalPlotter(FileSystemEventHandler):
             signals = np.load(self.file_path)
             for i, line in enumerate(self.lines):
                 if i == self.n_modes:
-                  line.set_data(range(signals.shape[0]), np.ones(signals.shape[0]) * np.mean(signals, axis=(0, 1)) + self.ref)
+                  line.set_data(self.x_axis, np.ones(signals.shape[0]) * np.mean(signals, axis=(0, 1)) + self.ref)
                 else:
-                  line.set_data(range(signals.shape[0]), signals[:, i] + self.ref)
+                  line.set_data(self.x_axis, signals[:, i] + self.ref)
                 
             data_min = np.min(signals) + self.ref
             data_max = np.max(signals) + self.ref
             center = np.mean(signals, axis=(0, 1)) + self.ref
             # center = (data_max + data_min) / 2
-            half_range = 5 / 2
+            half_range = 8 / 2
             self.ax.set_ylim(center - half_range, center + half_range)
             
             self.ax.relim()

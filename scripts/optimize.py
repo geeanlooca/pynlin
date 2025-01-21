@@ -159,6 +159,7 @@ if __name__ == "__main__":
     # Configuration
     recompute = True
     signal_powers = [-10]
+    # signal_powers = [-10, -5, 0]
     
     for signal_power in signal_powers:
         cf = cfg.load_toml_to_struct("./input/config.toml")
@@ -168,16 +169,16 @@ if __name__ == "__main__":
         
         if not os.path.exists(output_file) or recompute:
             pump_sol, signal_sol, ase_sol, pump_wavelengths, pump_powers = ct_solver(
-                power_per_pump   = -3.5,
-                pump_band_a      = 1410e-9,
-                pump_band_b      = 1520e-9,
-                learning_rate    = 1e-3,
-                epochs           = 1000,
-                lock_wavelengths = 200,
+                power_per_pump   = -2.2,
+                pump_band_a      = 1385e-9,
+                pump_band_b      = 1465e-9,
+                learning_rate    = 5e-2,
+                epochs           = 1500,
+                lock_wavelengths = 1500,
                 batch_size       = 1,
-                use_precomputed  = False,
+                use_precomputed  = True,
                 optimize         = True,
-                use_avg_oi       = True
+                use_avg_oi       = False
             )
             variables_dict = {
                 name: value 
