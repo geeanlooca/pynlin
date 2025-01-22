@@ -261,3 +261,5 @@ plt.xscale('log')
 plt.ylabel(r'channel-pair NLIN [km$^2$/ps$^2$]')
 plt.tight_layout()
 plt.savefig(f"media/dispersion/partial_NLIN_fB.png", dpi=dpi)
+
+# TODO start again from here!!

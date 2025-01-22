@@ -227,8 +227,7 @@ if __name__ == "__main__":
         cf.launch_power = signal_power
         cfg.save_struct_to_toml("./input/config.toml", cf)
         output_file = f"results/ct_solution{signal_power}_gain_{cf.raman_gain}.npy"
-        
-
+  
         signal_wavelengths = wdm.wavelength_grid()
         
         if not os.path.exists(output_file) or recompute:
