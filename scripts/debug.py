@@ -1,3 +1,6 @@
+"""
+Just a debug script for functionalities
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 

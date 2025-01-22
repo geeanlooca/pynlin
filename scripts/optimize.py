@@ -1,3 +1,11 @@
+"""
+Optimize the pumps and calculate signal and ASE power evolution
+
+Generates figs: 
+
+- Power profiles
+
+"""
 import os
 import tqdm
 from multiprocessing import Pool

@@ -1,3 +1,7 @@
+""" 
+When run in background, continously
+update a plot of the final channel on off gain. 
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from watchdog.observers import Observer
