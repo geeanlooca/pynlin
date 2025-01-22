@@ -65,16 +65,28 @@ def plot_illustrative(fiber, pulse, wdm, recompute=False):
       print("  Done loading peaks.")
     print(peaks)
     
+    # 3. case of very low DGD (almost zero)
+    I_low = np.real(m_th_time_integral_general(pulse, fiber, wdm, (0, 0), (0, 0), 0.0, 0, z, 1e-20, None, beta2a, beta2a))
     
-    # 3. Plotting
-    colors  = ["blue", "grey"]
+    # 4. Plotting
+    colors  = ["grey", "blue"]
     markers = ["x", "o"]
+    marker_sizes = [5, 3]
     lw = 0.5
-    size = 5
     plt.figure(figsize=(4, 3))
     # plotting the pulses
-    for I in I_list:
-      plt.plot(z/LDbar, I / pulse.baud_rate, label=f'try', color="red")
+    for ii, I in enumerate(I_list):
+      if ii == 0:
+        plt.plot(z/LDbar, 
+                I / pulse.baud_rate, 
+                label=f'try', 
+                color="red",
+                linewidth=lw)
+      else:
+        plt.plot(z/LDbar, 
+                I / pulse.baud_rate, 
+                color="red",
+                linewidth=lw)
     # plotting the peaks
     for ip, (peak, z_peak) in enumerate(zip(peaks, z_peaks)):
       for ic in range(len(cases_peaks)):
@@ -82,17 +94,23 @@ def plot_illustrative(fiber, pulse, wdm, recompute=False):
           plt.plot(z_peak[ic]/LDbar, 
                    peak[ic]/pulse.baud_rate, 
                   marker=markers[ic],
-                  markersize=size,
+                  markersize=marker_sizes[ic],
                   label='case'+str(ic),
                   color=colors[ic],
                   linewidth=lw)
         else:
           plt.plot(z_peak[ic]/LDbar, 
                   peak[ic]/pulse.baud_rate,  
-                  markersize=size, 
+                  markersize=marker_sizes[ic], 
                   marker=markers[ic],
                   color=colors[ic],
                   linewidth=lw)
+    # plotting the low DGD case
+    plt.plot(z/LDbar, 
+             I_low / pulse.baud_rate, 
+             label='low DGD', 
+             color="green", 
+             linewidth=lw)
     plt.legend()
     plt.xlabel(r'$z / \bar{L_D}$')
     plt.ylabel(r'$I(z) \cdot T $')

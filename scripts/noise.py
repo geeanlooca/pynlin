@@ -69,4 +69,4 @@ avg = ((s_freq + l_freq) * 1e-12 / 2)
 plot_illustrative(fiber, 
                   pulse, 
                   wdm, 
-                  recompute=True)
+                  recompute=False)
