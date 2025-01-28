@@ -133,25 +133,40 @@ def get_fig2():
   dgds_numeric_n = np.logspace(np.log10(dgd1), np.log10(dgd2n), n_samples_numeric_n)
 
 
+  x_norm = L / T
+  y_norm = x_norm**(-2)
+  
   dpi = 300
   grid = False
   fig = plt.figure(figsize=(5, 3.5))
-  plt.plot(dgds_analytic * 1e12, analytic_nlin * 1e-30, lw=1, color='red')
-  # Fra LOWER
-  # plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) *
-  #          (LD_eff/ (T * np.sqrt(2 * np.pi)) * np.arcsinh(L / LD_eff))**2 * 1e-30, color='blue', lw=1, label=r'$N^<$')
-
-  plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) *
-          (L / (T * np.sqrt(2 * np.pi)))**2 * 1e-30, color='blue', lw=1, label=r'$N^<$')
-  # Fra UPPER
-  plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) * 1.77 * (LD_eff / (T * np.sqrt(2 * np.pi))
-          * np.arcsinh(L / LD_eff))**2 * 1e-30, color='blue', lw=1, ls=":", label=r'$N^>$')
-
+  plt.plot(dgds_analytic * x_norm, 
+           analytic_nlin * y_norm, 
+           lw=1, 
+           color='red')
+  plt.plot(dgds_analytic * x_norm, 
+           np.ones_like(dgds_analytic) * (L / (T * np.sqrt(2 * np.pi)))**2 * y_norm,
+           color='blue', 
+           lw=1, 
+           label=r'$N^<$')
+  plt.plot(dgds_analytic * x_norm,
+           np.ones_like(dgds_analytic) * 1.77 * (LD_eff / (T * np.sqrt(2 * np.pi))
+          * np.arcsinh(L / LD_eff))**2 * y_norm, 
+           color='blue', 
+           lw=1, 
+           ls=":", 
+           label=r'$N^>$')
+  plt.plot(dgds_analytic * x_norm, 
+           np.ones_like(dgds_analytic) * 0.406, 
+           color='green', 
+           ls="--", 
+           lw=1, 
+           label='Marco')
   # # Fra Series
   # plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) * (LD_eff/ (T * np.sqrt(2 * np.pi))
   #          * np.arcsinh(L / LD_eff))**2 * 1e-30, color='blue', ls=":", label=r'$N^>$')
-  plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) *
-          0.406, color='green', ls="--", lw=1, label='Marco')
+  # Fra LOWER
+  # plt.plot(dgds_analytic * 1e12, np.ones_like(dgds_analytic) *
+  #          (LD_eff/ (T * np.sqrt(2 * np.pi)) * np.arcsinh(L / LD_eff))**2 * 1e-30, color='blue', lw=1, label=r'$N^<$')
   # plt.scatter(dgds_numeric_g * 1e12, partial_nlin_gaussian * 1e-30,
   #             color='green', label='Gaussian', marker="x")
 
@@ -164,19 +179,24 @@ def get_fig2():
       if ix == 0:
           lowest_dgd = partial_B2g[0]
       print(partial_B2g)
-      plt.scatter(dgds_numeric_g * 1e12, partial_B2g * 1e-30,
-                  label='Gauss.' + str(gvd), color="blue", marker="x")
+      plt.scatter(dgds_numeric_g * x_norm, 
+                  partial_B2g * y_norm,
+                  label='Gauss.' + str(gvd), 
+                  color="blue", 
+                  marker="x")
       partial_B2n = (np.load("results/partial_nlin_nyquist" + str(gvd) + "B2.npy"))
-      plt.scatter(dgds_numeric_n * 1e12, partial_B2n * 1e-30,
-                  label='Nyq.' + str(gvd), color="green", marker="x")
+      plt.scatter(dgds_numeric_n * x_norm, 
+                  partial_B2n * y_norm,
+                  label='Nyq.' + str(gvd),
+                  color="green",
+                  marker="x")
 
   print(f"DGD low. num = {lowest_dgd:.3e}, ra < = {(L/ (T * np.sqrt(2 * np.pi)))**2:.3e}")
-
-  plt.xlabel('DGD [ps/m]')
   plt.legend()
   plt.yscale('log')
   plt.xscale('log')
-  plt.ylabel(r'channel-pair NLIN [km$^2$/ps$^2$]')
+  plt.xlabel(r'$L_W/L$')
+  plt.ylabel(r'$\mathcal{N} \, T^2 / L^2$')
   plt.tight_layout()
   plt.savefig(f"media/2-threshold.pdf", dpi=dpi)
 
