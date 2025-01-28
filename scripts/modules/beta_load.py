@@ -14,6 +14,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import ScalarFormatter
 import scripts.modules.cfg as cfg
 
+
 def fig3_fig4():
   formatter = ScalarFormatter()
   formatter.set_scientific(True)
@@ -25,7 +26,8 @@ def fig3_fig4():
   oi_avg = np.load('results/oi_avg.npy')
   use_avg_oi = False
 
-  print(f"Loading a ITU-T standardized WDM grid \n [spacing: {cf.channel_spacing*1e-9:.3e}GHz, center: {cf.center_frequency*1e-12:.3e}THz] \n")
+  print(
+      f"Loading a ITU-T standardized WDM grid \n [spacing: {cf.channel_spacing*1e-9:.3e}GHz, center: {cf.center_frequency*1e-12:.3e}THz] \n")
   # beta1_params = load_dummy_group_delay()
   beta1_params = load_group_delay()
   # beta1_params = load_dummy_group_delay()
@@ -33,9 +35,9 @@ def fig3_fig4():
   dpi = 300
   grid = False
   wdm = pynlin.wdm.WDM(
-      spacing          = cf.channel_spacing,
-      num_channels     = cf.n_channels,
-      center_frequency = cf.center_frequency
+      spacing=cf.channel_spacing,
+      num_channels=cf.n_channels,
+      center_frequency=cf.center_frequency
   )
   freqs = wdm.frequency_grid()
   modes = [0, 1, 2, 3]
@@ -43,8 +45,8 @@ def fig3_fig4():
 
   fiber = MMFiber(
       effective_area=80e-12,
-      overlap_integrals = oi_fit,
-      group_delay = beta1_params,
+      overlap_integrals=oi_fit,
+      group_delay=beta1_params,
       length=100e3
   )
 
@@ -59,7 +61,8 @@ def fig3_fig4():
   # print(beta2[1, :])
 
   plt.clf()
-  sns.heatmap(beta1, cmap="coolwarm", square=False, xticklabels=freqs, yticklabels=modes)
+  sns.heatmap(beta1, cmap="coolwarm", square=False,
+              xticklabels=freqs, yticklabels=modes)
   plt.xlabel('Frequency (Hz)')
   plt.ylabel('Modes')
   plt.title('Beta1 Heatmap')
@@ -77,15 +80,61 @@ def fig3_fig4():
 
   collisions_single = np.zeros((1, len(freqs)))
   for j in range(len(freqs)):
-      collisions_single[0, j] = np.floor(np.abs(np.sum(beta1[0 :] - beta1[0, j])) * L / T)
-          
+      collisions_single[0, j] = np.floor(
+          np.abs(np.sum(beta1[0:] - beta1[0, j])) * L / T)
+
   nlin = np.zeros((len(modes), len(freqs)))
+  # only flat up to this point
+
+  ############################
+  # GAUSSIAN NOISE
+  colors = ["blue", "orange", "green", "red"]
+  def pair_noise(dgd):
+      return np.where(
+          dgd > 3e-15, # this needs to be set carefully
+          L / (T * dgd),
+          1.772 * (L / (T * np.sqrt(2 * np.pi)))**2
+      )
+  #
   for i in range(len(modes)):
       for j in range(len(freqs)):
-          nlin[i, j] = np.sum(L / (np.abs(beta1 - beta1[i, j])[(beta1 - beta1[i, j]) != 0] * T))
-  print("Unlucky channel has noise: ", np.min(nlin))
-  print("Lucky channel has noise: ", np.max(nlin))
-
+          nlin[i, j] = np.sum(pair_noise(np.abs(beta1 - beta1[i, j]))[(beta1 - beta1[i, j]) != 0])
+  #
+  plt.clf()
+  plt.figure(figsize=(3.6, 3.2))
+  for i in range(4):
+      plt.semilogy(freqs * 1e-12, 
+                   nlin[i, :] * 1e-30, 
+                   label=mode_names[i], 
+                   lw=1.2,
+                   color = colors[i])
+  #
+  def pair_noise(dgd):
+      return np.where(
+          dgd > 1e-20,
+          L / (T * dgd),
+          1.772 * (L / (T * np.sqrt(2 * np.pi)))**2
+      )
+  #
+  for i in range(len(modes)):
+      for j in range(len(freqs)):
+          nlin[i, j] = np.sum(pair_noise(np.abs(beta1 - beta1[i, j]))[(beta1 - beta1[i, j]) != 0])
+  #
+  for i in range(4):
+      plt.semilogy(freqs * 1e-12, 
+                   nlin[i, :] * 1e-30, 
+                  #  label=mode_names[i], 
+                   lw=1.2,
+                   ls=":",
+                   color = colors[i])
+  plt.xlabel(r'$f \; [\mathrm{THz}]$')
+  plt.ylabel(r'$\mathrm{NLIN} \; [\mathrm{km}^2/\mathrm{ps}^{2}]$')
+  plt.legend(labelspacing=0.1)
+  plt.grid(grid)
+  plt.tight_layout()
+  plt.savefig(f"media/nlin.pdf", dpi=dpi)
+  ############################
+  
   nlin_no_cross = np.zeros((len(modes), len(freqs)))
   for i in range(len(modes)):
     for j in range(len(freqs)):
@@ -98,7 +147,6 @@ def fig3_fig4():
   # plt.title('Total number of collision due to system')
   # plt.savefig("media/dispersion/disp.png")
   # plt.show()
-
 
   plt.clf()
   for i in range(4):
@@ -131,18 +179,6 @@ def fig3_fig4():
   # plt.show()
 
   plt.clf()
-  plt.figure(figsize=(3.8, 3.5))
-  for i in range(4):
-      plt.semilogy(freqs * 1e-12, nlin[i, :] * 1e-30, label=mode_names[i], lw=1)
-  plt.xlabel(r'$f \; [\mathrm{THz}]$')
-  plt.ylabel(r'$\mathrm{NLIN} \; [\mathrm{km}^2/\mathrm{ps}^{2}]$')
-  plt.legend(labelspacing=0.1)
-  plt.grid(grid)
-  plt.tight_layout()
-  plt.savefig(f"media/dispersion/nlin.png", dpi=dpi)
-  # plt.show()
-
-  plt.clf()
   plt.figure(figsize=(3.6, 3.4))
   for i in range(4):
       plt.plot(freqs * 1e-12, beta1[i, :] * 1e9, label=mode_names[i], lw=2)
@@ -168,17 +204,17 @@ def fig3_fig4():
   plt.tight_layout()
   plt.savefig(f"media/dispersion/beta1.pdf", dpi=dpi)
 
-  plt.clf()
-  plt.figure(figsize=(4.6, 4))
+  # plt.clf()
+  # plt.figure(figsize=(4.6, 4))
 
-  for i in range(4):
-      plt.plot(freqs * 1e-12, beta2[i, :] * 1e27, label=mode_names[i])
-  plt.xlabel(r'$f \; [\mathrm{THz}]$')
-  plt.ylabel(r'$\beta_2$ [ps$^2$/km]')
-  plt.legend(labelspacing=0.1)
-  # plt.grid(grid)
-  plt.tight_layout()
-  plt.savefig(f"media/dispersion/beta2.png", dpi=300)
+  # for i in range(4):
+  #     plt.plot(freqs * 1e-12, beta2[i, :] * 1e27, label=mode_names[i])
+  # plt.xlabel(r'$f \; [\mathrm{THz}]$')
+  # plt.ylabel(r'$\beta_2$ [ps$^2$/km]')
+  # plt.legend(labelspacing=0.1)
+  # # plt.grid(grid)
+  # plt.tight_layout()
+  # plt.savefig(f"media/dispersion/beta2.png", dpi=300)
 
   beta1_differences = np.abs(beta1[:, :, np.newaxis, np.newaxis] - beta1[np.newaxis, np.newaxis, :, :])
   beta1_differences = beta1_differences[beta1_differences!= 0]
