@@ -106,10 +106,8 @@ class GaussianPulse(Pulse):
         baud_rate: float = 10e9,
         num_symbols: float = 1e3,
         samples_per_symbol: float = 2**5,
-        rolloff: float = 0.1,
     ):
         super().__init__(baud_rate, num_symbols, samples_per_symbol)
-        self.rolloff = rolloff
         self._generate()
 
     def data(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -125,6 +123,21 @@ class GaussianPulse(Pulse):
         # Correct analytical normalization (finiteness of interval make it imprecise)
         energy = scipy.integrate.trapezoid(np.abs(gt) ** 2, t)
         gt = gt / np.sqrt(energy)
-
         self.t = t
         self.g = gt
+        
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    pulse = GaussianPulse(baud_rate=10e9, num_symbols=5e2, samples_per_symbol=2**5)
+    g, t = pulse.data()
+    vari = 100
+    print(len(t))
+    mid = len(t)//2
+    plt.plot(t[mid-vari:mid+vari], np.abs(g[mid-vari:mid+vari]))
+    pulse = NyquistPulse(baud_rate=10e9, num_symbols=5e2, samples_per_symbol=2**5)
+    g, t = pulse.data()
+    plt.plot(t[mid-vari:mid+vari], np.abs(g[mid-vari:mid+vari]))
+    pulse = RaisedCosinePulse(baud_rate=10e9, num_symbols=5e2, samples_per_symbol=2**5, rolloff=1)
+    g, t = pulse.data()
+    plt.plot(t[mid-vari:mid+vari], np.abs(g[mid-vari:mid+vari]))
+    plt.show()

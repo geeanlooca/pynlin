@@ -21,7 +21,7 @@ import pynlin.wdm
 import pynlin.pulses
 from scripts.modules.load_fiber_values import load_group_delay
 from modules import cfg
-from modules.plot_collisions_fig1 import plot_illustrative
+from scripts.modules.fig1 import plot_illustrative
  
 cf = cfg.load_toml_to_struct("./input/config_collision.toml")
 oi_fit = np.load('oi_fit.npy')
@@ -32,7 +32,7 @@ beta2 = -pynlin.utils.dispersion_to_beta2(
 )
 
 wdm = pynlin.wdm.WDM(
-    spacing=cf.channel_spacing,
+    spacing=cf.channel_spacing, 
     num_channels=cf.n_channels,
     center_frequency=cf.center_frequency
 )
@@ -44,14 +44,6 @@ fiber = pynlin.fiber.MMFiber(
       length=cf.fiber_length,
       n_modes = 4
   )
-
-# make the time integral take as an input (pulse, fiber, wdm)
-pulse = pynlin.pulses.GaussianPulse(
-    baud_rate=cf.baud_rate,
-    num_symbols=5e2, # CHANGING THIS SOLVES THE ALIASING PROBLEM TODO
-    samples_per_symbol=2**5,
-    rolloff=0.0,
-)
 
 freqs = wdm.frequency_grid()
 
@@ -65,8 +57,13 @@ l_freq = 3e8 / l_limit
 delta = (s_freq - l_freq) * 1e-12
 avg = ((s_freq + l_freq) * 1e-12 / 2)
 
-### Manually set the DGD and beta2 values for both the channels
-plot_illustrative(fiber, 
-                  pulse, 
-                  wdm, 
-                  recompute=False)
+fig_to_generate = [1, 2]
+if 1 in fig_to_generate:
+  ### Manually set the DGD and beta2 values for both the channels
+  plot_illustrative(fiber, 
+                    wdm, 
+                    cf,
+                    recompute=True)
+if 2 in fig_to_generate:
+  ### Manually set the DGD and beta2 values for both the channels
+  plot_illustrative()

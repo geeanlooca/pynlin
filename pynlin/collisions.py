@@ -23,8 +23,12 @@ def get_interfering_frequencies(
 
 def get_frequency_spacing(a_chan, b_chan, wdm):
   frequency_grid = wdm.frequency_grid()
-  return frequency_grid[b_chan[1]] - frequency_grid[a_chan[1]]
-
+  try:
+    return frequency_grid[b_chan[1]] - frequency_grid[a_chan[1]]
+  except:
+    print("Inadequate channel choice to calculate spacing...")
+    return 0
+  
 def get_m_values(
     fiber: Fiber,
     wdm: WDM,
