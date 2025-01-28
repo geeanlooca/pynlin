@@ -24,8 +24,8 @@ from modules import cfg
 from scripts.modules.fig1 import plot_illustrative
  
 cf = cfg.load_toml_to_struct("./input/config_collision.toml")
-oi_fit = np.load('oi_fit.npy')
-oi_avg = np.load('oi_avg.npy')
+oi_fit = np.load('results/oi_fit.npy')
+oi_avg = np.load('results/oi_avg.npy')
 
 beta2 = -pynlin.utils.dispersion_to_beta2(
     cf.dispersion, 1550e-9
@@ -66,4 +66,5 @@ if 1 in fig_to_generate:
                     recompute=True)
 if 2 in fig_to_generate:
   ### Manually set the DGD and beta2 values for both the channels
-  plot_illustrative()
+  # plot_illustrative()
+  pass

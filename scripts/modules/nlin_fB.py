@@ -177,7 +177,6 @@ for gvd in gvds:
 
 T = 100e-12
 L = dummy_fiber.length
-
 LD_eff = pulse.T0**2/np.abs(gvd)
 
 dgd2 = dgd2g
@@ -255,7 +254,7 @@ for mode in ["max", "min"]:
 print(f"DGD low. num = {lowest_dgd:.3e}, ra < = {(L/ (T * np.sqrt(2 * np.pi)))**2:.3e}")
 
 plt.xlabel('DGD [ps/m]')
-plt.legend()
+# plt.legend()
 plt.yscale('log')
 plt.xscale('log')
 plt.ylabel(r'channel-pair NLIN [km$^2$/ps$^2$]')

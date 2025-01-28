@@ -401,6 +401,9 @@ def m_th_time_integral_general(
         i_list.append(scipy.integrate.trapezoid(g1 * g2 * g3 * g4, dx=dt))
     else:
       # avg_l_d = 1 / (np.abs(gvd) * (pulse.baud_rate)**2)
+      if gvda is None or gvdb is None:
+        gvda = gvd
+        gvdb = gvd
       for z in z_axis:
         delay = m / pulse.baud_rate + dgd * z
         g1 = apply_chromatic_dispersion(b_chan, pulse, fiber, wdm, z, gvda, 0.0)

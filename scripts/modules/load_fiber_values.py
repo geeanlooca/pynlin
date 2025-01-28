@@ -60,10 +60,10 @@ def load_oi() -> np.array:
             oi_max[i, j] = np.max(oi[:, :, i, j])
             oi_min[i, j] = np.min(oi[:, :, i, j])
 
-    np.save('oi.npy', oi)
-    np.save('oi_avg.npy', oi_avg)
-    np.save('oi_max.npy', oi_max)
-    np.save('oi_min.npy', oi_min)
+    np.save('results/oi.npy', oi)
+    np.save('results/oi_avg.npy', oi_avg)
+    np.save('results/oi_max.npy', oi_max)
+    np.save('results/oi_min.npy', oi_min)
 
     # quadratic fit of the OI in frequency
     oi_fit = np.ndarray((6, 4, 4))
@@ -73,5 +73,5 @@ def load_oi() -> np.array:
         for j in range(4):
             oi_fit[:, i, j] = curve_fit(
                 oi_law_fit, (x, y), oi[:, :, i, j].ravel(), p0=[1e10, 1e10, 1e10, 1e10, 0, 1])[0].T
-    np.save('oi_fit.npy', oi_fit)
+    np.save('results/oi_fit.npy', oi_fit)
     return oi_fit

@@ -26,7 +26,7 @@ def get_frequency_spacing(a_chan, b_chan, wdm):
   try:
     return frequency_grid[b_chan[1]] - frequency_grid[a_chan[1]]
   except:
-    print("Inadequate channel choice to calculate spacing...")
+    # print("Inadequate channel choice to calculate spacing...")
     return 0
   
 def get_m_values(
