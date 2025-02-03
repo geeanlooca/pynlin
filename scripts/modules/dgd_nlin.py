@@ -13,7 +13,7 @@ from pynlin.fiber import MMFiber
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import ScalarFormatter
 import scripts.modules.cfg as cfg
-
+from pynlin.utils import watt2dBm
 
 def get_nlin(cf, 
              dgd_threshold = 3e-15, 
@@ -150,7 +150,7 @@ def noise_plot(dgd_threshold = 3e-15,
   #
   plt.xlabel(r'$f \; [\mathrm{THz}]$')
   plt.ylabel(r'$\mathrm{NLIN} \; [\mathrm{km}^2/\mathrm{ps}^{2}]$')
-  plt.legend(labelspacing=0.1)
+  # plt.legend(labelspacing=0.1)
   plt.grid(grid)
   plt.tight_layout()
   plt.ylim([2e-1, 1e2])
@@ -159,6 +159,10 @@ def noise_plot(dgd_threshold = 3e-15,
   
   avg_nlin_mmf = np.mean(nlin_mmf)
   avg_nlin_smf = np.mean(nlin_smf)
-  print(f"Average NLIN per channel: MMF -> {avg_nlin_mmf:4.3e} | SMF -> {avg_nlin_smf:4.3e}")
+  print(f"Average NLIN coeff per channel: MMF -> {avg_nlin_mmf:4.3e} | SMF -> {avg_nlin_smf:4.3e}")
   # apply QAM 16 and -10 dBm input power
-  print(f"Average NLIN per channel: MMF -> {avg_nlin_mmf:4.3e} | SMF -> {avg_nlin_smf:4.3e}")
+  gamma = 1.27e-3
+  P_in = 0.1e-3
+  constellation_factor = 1
+  nlin_prefactor = P_in**3 * gamma**2 * constellation_factor / (cf_mmf.baud_rate**2) 
+  print(f"Average NLIN power per channel: MMF -> {watt2dBm(nlin_prefactor * avg_nlin_mmf):4.1f} dBm | SMF -> {watt2dBm(nlin_prefactor * avg_nlin_smf):4.1f} dBm")
