@@ -162,7 +162,9 @@ def repropagate_numpy(fiber,
                 signal_wavelengths, 
                 pump_wavelengths, 
                 pump_powers,
-                cf):
+                cf,
+                output_file
+                ):
     print("Repropagating with Numpy amplifier...")
     amplifier = NumpyMMFRamanAmplifier(fiber)
     pump_powers = pump_powers.reshape((cf.n_pumps, cf.n_modes))
@@ -203,8 +205,8 @@ if __name__ == "__main__":
     # -5  -> true OI
     # 0   -> true OI
   
-    oi_fit = np.load('oi_fit.npy')
-    oi_avg = np.load('oi_avg.npy')
+    oi_fit = np.load('results/oi_fit.npy')
+    oi_avg = np.load('results/oi_avg.npy')
    
     # prepare the definitions of fiber and wdm
     cf = cfg.load_toml_to_struct("./input/config.toml")
@@ -271,7 +273,8 @@ if __name__ == "__main__":
             signal_wavelengths = signal_wavelengths,
             pump_wavelengths   = variables_dict['pump_wavelengths'],
             pump_powers        = variables_dict['pump_powers'],
-            cf                 = cf
+            cf                 = cf,
+            output_file        = output_file
           )
         variables_dict = np.load(output_file, allow_pickle=True).item()
         

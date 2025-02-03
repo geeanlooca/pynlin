@@ -22,7 +22,7 @@ from scripts.modules.load_fiber_values import load_group_delay
 from modules import cfg
 from scripts.modules.collision import plot_illustrative
 from scripts.modules.threshold import get_fig2_raman
-from scripts.modules.dgd_nlin import noise_plot
+from scripts.modules.dgd_nlin import noise_plot, noise_histogram
  
 cf = cfg.load_toml_to_struct("./input/config_collision.toml")
 oi_fit = np.load('results/oi_fit.npy')
@@ -57,7 +57,7 @@ l_freq = 3e8 / l_limit
 delta = (s_freq - l_freq) * 1e-12
 avg = ((s_freq + l_freq) * 1e-12 / 2)
 
-fig_to_generate = [3]
+fig_to_generate = [4]
 if 1 in fig_to_generate:
   plot_illustrative(fiber, 
                     wdm, 
@@ -73,4 +73,13 @@ if 2 in fig_to_generate:
 if 3 in fig_to_generate:
   noise_plot(dgd_threshold=3e-15, 
              use_kappa=True, 
-             use_smf=True)
+             use_smf=True,
+             use_fB=True,
+             use_dBm_scale=True)
+
+if 4 in fig_to_generate:
+  noise_histogram(dgd_threshold=3e-15, 
+             use_kappa=True, 
+             use_smf=True,
+             use_fB=True,
+             use_dBm_scale=True)
