@@ -71,4 +71,6 @@ if 2 in fig_to_generate:
                  recompute=True)
 
 if 3 in fig_to_generate:
-  noise_plot(dgd_threshold=3e-15)
+  noise_plot(dgd_threshold=3e-15, 
+             use_kappa=True, 
+             use_smf=True)
