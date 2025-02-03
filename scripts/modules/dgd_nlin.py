@@ -13,7 +13,14 @@ from pynlin.fiber import MMFiber
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import ScalarFormatter
 import scripts.modules.cfg as cfg
-from pynlin.utils import watt2dBm
+from pynlin.utils import watt2dBm, dBm2watt
+
+def get_nlin_prefactor(cf):
+  gamma = 1.3e-3
+  P_in = dBm2watt(-1.5)
+  constellation_factor = 0.32
+  nlin_prefactor = P_in**3 * gamma**2 * constellation_factor / (cf.baud_rate**2) 
+  return nlin_prefactor
 
 def get_nlin(cf, 
              dgd_threshold = 3e-15, 
@@ -172,10 +179,7 @@ def noise_plot(dgd_threshold = 3e-15,
   linestyles = ["-", "-", "-", "-", "--"]
   labels = ["LP01", "LP1", "LP11", "LP11", "SMF(LP01)"]
   
-  gamma = 1.27e-3
-  P_in = 0.1e-3
-  constellation_factor = 1
-  nlin_prefactor = P_in**3 * gamma**2 * constellation_factor / (cf_mmf.baud_rate**2) 
+  nlin_prefactor = get_nlin_prefactor(cf_mmf)
   if use_dBm_scale:
     y_rescale = nlin_prefactor
     ylabel = r'$P_\mathrm{NLIN} \; [\mathrm{dBm}]$'
@@ -274,10 +278,7 @@ def noise_histogram(dgd_threshold = 3e-15,
   linestyles = ["-", "-", "-", "-", "--"]
   labels = ["LP01", "LP1", "LP11", "LP11", "SMF(LP01)"]
   
-  gamma = 1.27e-3
-  P_in = 0.1e-3
-  constellation_factor = 1
-  nlin_prefactor = P_in**3 * gamma**2 * constellation_factor / (cf_mmf.baud_rate**2) 
+  nlin_prefactor = get_nlin_prefactor(cf_mmf)
   if True:
     y_rescale = nlin_prefactor
     ylabel = r'$\mathrm{n.\;  of\; channels}$'
@@ -294,7 +295,6 @@ def noise_histogram(dgd_threshold = 3e-15,
   y_extremes = [np.min(y_data), np.max(y_data)]
   n_bins = 30
   bin_width = (y_extremes[1] - y_extremes[0]) / n_bins
-  print(y_extremes)
   bins = np.arange(y_extremes[0], y_extremes[1] + bin_width, bin_width)
   # n_bins=[15, 8, 8, 8, 8]
   alpha=0.2

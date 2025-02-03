@@ -100,14 +100,24 @@ def ct_solver(fiber,
     print(initial_pump_powers.shape)
     ## initialize to the configuration that is not bad
     initial_pump_wavelengths = np.array([1.3844927e-06, 1.3975118e-06, 1.4131243e-06, 1.4286949e-06, 1.4559689e-06, 1.4575429e-06], dtype=np.float32)
-    initial_pump_powers = np.array([[-31.527662 , -32.781242 , -15.580993 , -18.018877 ],
-       [-25.519464 , -23.685694 , -10.617271 , -13.667908 ],
-       [-24.974928 , -23.210556 ,  -6.3097696,  -9.496441 ],
-       [-25.57634  , -22.774395 ,  -1.7358053,  -4.677509 ],
-       [-20.778175 , -17.052673 ,   1.0048871,   5.156198 ],
-       [-21.905903 , -19.641636 ,   8.71186  ,   0.5589079]],
-      dtype=np.float32)
-    initial_pump_powers = initial_pump_powers.reshape((24,)) 
+    if cf.n_modes == 4:
+      initial_pump_powers = np.array([
+        [-31.527662 , -32.781242 , -15.580993 , -18.018877 ],
+        [-25.519464 , -23.685694 , -10.617271 , -13.667908 ],
+        [-24.974928 , -23.210556 ,  -6.3097696,  -9.496441 ],
+        [-25.57634  , -22.774395 ,  -1.7358053,  -4.677509 ],
+        [-20.778175 , -17.052673 ,   1.0048871,   5.156198 ],
+        [-21.905903 , -19.641636 ,   8.71186  ,   0.5589079]],      dtype=np.float32)
+      initial_pump_powers = initial_pump_powers.reshape((24,)) 
+    else: 
+      initial_pump_powers = np.array([
+        [-15.580993 ],
+        [-10.617271 ],
+        [ -6.309769 ],
+        [ -1.735805 ],
+        [  1.004887 ],
+        [  8.71186  ]],      dtype=np.float32) - 10
+      initial_pump_powers = initial_pump_powers.reshape((6,)) 
     # to subtract to the pumps in the 0 dBm launch power setup to prevent RK4 blowup
     if cf.launch_power == 0:
         initial_pump_powers = initial_pump_powers - 3
@@ -197,11 +207,11 @@ def repropagate_numpy(fiber,
 
 if __name__ == "__main__":    
     # Configuration
-    recompute   = False
+    recompute   = True
     repropagate = True
     use_avg_oi  = False
     signal_powers = [-5]
-    signal_powers = [0, -5, -10]
+    signal_powers = [0, -5, 10]
     # -10 -> true
     # -5  -> true OI
     # 0   -> true OI
@@ -210,7 +220,7 @@ if __name__ == "__main__":
     oi_avg = np.load('results/oi_avg.npy')
    
     # prepare the definitions of fiber and wdm
-    cf = cfg.load_toml_to_struct("./input/config.toml")
+    cf = cfg.load_toml_to_struct("./input/smf.toml")
     num_original_modes = oi_avg[0].shape[0]
     matrix_avg = oi_avg
     matrix_zeros = np.tile(np.zeros((num_original_modes, num_original_modes))[
@@ -237,12 +247,13 @@ if __name__ == "__main__":
     for signal_power in signal_powers:
         cf.launch_power = signal_power
         cfg.save_struct_to_toml("./input/config.toml", cf)
-        output_file = f"results/ct_solution{signal_power}_gain_{cf.raman_gain}.npy"
+        output_file = f"results/ct_solution{signal_power}_gain_{cf.raman_gain}_SMF.npy"
   
         signal_wavelengths = wdm.wavelength_grid()
         
         if not os.path.exists(output_file) or recompute:
-            raise("DO NOT OVERWRITE!!")
+            # raise("DO NOT OVERWRITE!!")
+            assert(cf.n_modes == 1)
             pump_sol, signal_sol, ase_sol, pump_wavelengths, pump_powers = ct_solver(
                 fiber,
                 wdm, 
@@ -253,7 +264,7 @@ if __name__ == "__main__":
                 epochs           = 5000,
                 lock_wavelengths = 2000,
                 batch_size       = 1,
-                use_precomputed  = True,
+                use_precomputed  = False,
                 optimize         = True, 
                 use_avg_oi       = False
             )
