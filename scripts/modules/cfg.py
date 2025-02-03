@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 import toml
+import os
 
 class Config(BaseModel):
   dispersion       : float
@@ -30,8 +31,6 @@ def save_struct_to_toml(filepath: str, config: Config):
     with open(filepath, "w") as f:
         toml.dump(config.model_dump(), f)
         
-import os
-
 
 def get_next_filename(
   base_name, 

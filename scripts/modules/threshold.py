@@ -222,7 +222,7 @@ def get_nlin_threshold(
       elif mode == "min":
         analytic_nlin = analytic_nlin * fB2_antonio_min
         
-      gauss   = np.ones_like(dgds_analytic) * 1.772 * (LD_eff / (T * np.sqrt(2 * np.pi))
+      gauss   = np.ones_like(dgds_analytic) * np.sqrt(np.pi) * (LD_eff / (T * np.sqrt(2 * np.pi))
                                                     * np.arcsinh(L / LD_eff))**2
       nyquist = np.ones_like(dgds_analytic) * 0.406 / y_norm
       if mode == "max":
@@ -374,8 +374,3 @@ def get_fig2(recompute=False):
 
 def get_fig2_raman(recompute=False):
     return get_nlin_threshold(recompute=recompute, use_fB=True)
-
-
-if __name__ == "__main__":
-    # get_fig2(recompute=False)
-    get_fig2_raman(recompute=False)
