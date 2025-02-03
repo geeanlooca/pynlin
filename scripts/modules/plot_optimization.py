@@ -23,7 +23,7 @@ def plot_profiles(signal_wavelengths,
                  watt2dBm(signal_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.3)
         try:
           plt.plot(z_plot,
-                 watt2dBm(ase_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.3, ls="-.")
+                 watt2dBm(ase_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.7, ls="-")
         except:
           print(f"got data without ASE.")
     pass
@@ -32,7 +32,7 @@ def plot_profiles(signal_wavelengths,
     # plt.legend()
     plt.tight_layout()
     plt.grid(False)
-    plt.savefig(get_next_filename("media/optimization/signal_ase_profile", "pdf"))
+    plt.savefig(get_next_filename("media/optimization/signal_ase_profile", "pdf", use_active_naming=True))
     plt.clf()
     #
     plt.figure(figsize=(4, 3))
@@ -47,7 +47,7 @@ def plot_profiles(signal_wavelengths,
     plt.xlabel(r"$z$ [km]")
     # plt.legend()
     plt.tight_layout()
-    plt.savefig(get_next_filename("media/optimization/pump_profile", "pdf"))
+    plt.savefig(get_next_filename("media/optimization/pump_profile", "pdf", use_active_naming=True))
     #
     loss = -0.2e-3 * cf.fiber_length
     on_off_gain = -loss + cf.raman_gain
@@ -63,7 +63,7 @@ def plot_profiles(signal_wavelengths,
     plt.xlabel(r"Channel Wavelength [$\mu$ m]")
     plt.ylabel("On Off Gain [dB]")
     plt.tight_layout()
-    plt.savefig(get_next_filename("media/optimization/flatness", "pdf"))
+    plt.savefig(get_next_filename("media/optimization/flatness", "pdf", use_active_naming=True))
     print(f"Plot saved.")
     return
 
@@ -82,20 +82,20 @@ def analyze_optimization(
   approx_loss = -0.2e-3 * cf.fiber_length
   avg_pump_power_0 = np.mean(pump_solution_dBm[0, :, :])
   avg_pump_power_L = np.mean(pump_solution_dBm[-1, :, :])
-  print(f"{'Optimization metric':<30} | {'Value':>10}")
+  print(f"\n{'Optimization metric':<30} | {'Value':>10}")
   print("-" * 43)
-  print(f"{'Flatness':<30} | {flatness:.5e} dB")
-  print(f"{'Attenuation':<30} | {approx_loss:.5e} dB")
+  print(f"{'Flatness':<30} | {flatness:7.3f} dB")
+  print(f"{'Attenuation':<30} | {approx_loss:7.3f} dB")
   try:
     ase_solution_dBm = watt2dBm(ase_solution)
     avg_ase = np.mean(ase_solution_dBm[-1, :, :])
-    print(f"{'ASE':<30} | {avg_ase:.5e} dB")
+    print(f"{'Average ASE':<30} | {avg_ase:7.3f} dBm")
   except:
     print(f"got data without ASE.")
     pass
-  print(f"{'Average pump power at z=0':<30} | {avg_pump_power_0:.5e} dBm")
-  print(f"{'Average pump power at z=L':<30} | {avg_pump_power_L:.5e} dBm")
-  print("pump configuration for copy-paste")
-  print(f" ° Wavel [m] : {repr(pump_wavelengths)}")
-  print(f" ° Pow. [dBm] : {repr(pump_powers)}")
+  print(f"{'Average pump power at z=0':<30} | {avg_pump_power_0:7.3f} dBm")
+  print(f"{'Average pump power at z=L':<30} | {avg_pump_power_L:7.3f} dBm")
+  print("pump configuration for copy-paste not shown")
+  # print(f" ° Wavel [m] : {repr(pump_wavelengths)}")
+  # print(f" ° Pow. [dBm] : {repr(pump_powers)}")
   return

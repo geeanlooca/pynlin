@@ -181,7 +181,8 @@ def repropagate_numpy(fiber,
         fiber,
         ase=True,
         counterpumping=True,
-        reference_bandwidth=cf.baud_rate
+        reference_bandwidth=nu2lambda(cf.baud_rate), # BEWARE, it is now a bandidth, but a wavelength interval!
+        temperature=300,
     )
     print("Done repropagation.")
     variables_dict = {
@@ -199,7 +200,7 @@ if __name__ == "__main__":
     recompute   = False
     repropagate = True
     use_avg_oi  = False
-    # signal_powers = [-10]
+    signal_powers = [-5]
     signal_powers = [0, -5, -10]
     # -10 -> true
     # -5  -> true OI

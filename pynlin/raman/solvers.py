@@ -243,7 +243,17 @@ class RamanAmplifier:
         return direction * np.squeeze(dPdz)
 
     @staticmethod
-    def raman_ode_with_ase(P, z, losses, gain_matrix, gain_matrix_ase, direction, temperature, ref_bandwidth, num_pumps, num_signals, frequencies):
+    def raman_ode_with_ase(P, 
+                           z, 
+                           losses, 
+                           gain_matrix, 
+                           gain_matrix_ase, 
+                           direction, 
+                           temperature, 
+                           ref_bandwidth, 
+                           num_pumps, 
+                           num_signals, 
+                           frequencies):
         """System of equations describing a Raman amplifier. With ASE. No Rayleigh back-reflection. No ASE-to-pump power transfer"""
         h_planck = 6.626e-34
 
@@ -791,6 +801,7 @@ class MMFRamanAmplifier(RamanAmplifier):
 
             # Compute the phonon occupancy factor
             Hinv = np.exp(h_planck * np.abs(frequency_shifts) / (kB * temperature)) - 1
+            Hinv = np.where(Hinv == 0, -1, Hinv)
             eta = 1 + 1 / Hinv
             np.fill_diagonal(eta, 0)
             # print(eta)

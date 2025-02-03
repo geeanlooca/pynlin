@@ -35,7 +35,7 @@ def save_struct_to_toml(filepath: str, config: Config):
 def get_next_filename(
   base_name, 
   extension, 
-  active_naming=True):
+  use_active_naming=True):
     """
     Generate a unique file name by appending an incrementing numeral
     if a file with the same name already exists.
@@ -47,7 +47,7 @@ def get_next_filename(
     Returns:
         str: A unique file name.
     """
-    if active_naming:
+    if use_active_naming:
       if not extension.startswith('.'):
           extension = '.' + extension
       
