@@ -38,7 +38,7 @@ def get_nlin(cf,
   if cf.n_modes == 1:
     solutions = np.load("results/ct_solution-2_gain_0.0_SMF.npy", allow_pickle=True).item()
   else:
-    solutions = np.load("results/ct_solution-5_gain_0.0.npy", allow_pickle=True).item()
+    solutions = np.load("results/ct_solution-2_gain_0.0.npy", allow_pickle=True).item()
   
   signal_powers = solutions['signal_sol'] 
   signal_powers_swp = np.swapaxes(signal_powers, 1, 2)
