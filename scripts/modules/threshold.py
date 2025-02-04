@@ -16,7 +16,11 @@ from matplotlib.gridspec import GridSpec
 import scripts.modules.cfg as cfg
 from scipy.interpolate import interp1d
 from pynlin.collisions import get_m_values, get_collision_location
+import matplotlib.colors as mcolors
 
+def adjust_luminosity(color, factor):
+    rgb = np.array(mcolors.to_rgb(color))  # Convert to RGB
+    return np.clip(rgb * factor, 0, 1)  # Scale and clip values
 
 def get_space_integrals(m, z, I):
     '''
@@ -73,8 +77,10 @@ def get_nlin_threshold(
         f"Computing the channel-pair NLIN coefficient insides [{dgd1*1e12:.1e}, {dgd2g*1e12:.1e}] ps/m ")
     #
     if use_fB:
-        modes = ["min", "max", "perfect"] 
-        signal_powers = np.load("results/signal_power.npy")
+        modes = ["min", "max"] 
+        solutions = np.load("results/ct_solution-2_gain_0.0.npy", allow_pickle=True).item()
+        signal_powers = solutions['signal_sol'] 
+        signal_powers = np.swapaxes(signal_powers, 1, 2)
         print(np.shape(signal_powers))
         fB_max = np.max(signal_powers, axis=(1, 2))
         fB_min = np.min(signal_powers, axis=(1, 2))
@@ -210,6 +216,7 @@ def get_nlin_threshold(
     dpi = 300
     grid = False
     plt.figure(figsize=(3.6, 3))
+    color_modes = [adjust_luminosity('magenta', 0.8), adjust_luminosity('cyan', 0.8),  'green']
     for im, mode in enumerate(modes):
       # antonio_function = antonio_rescale_max if mode == "max" else antonio_rescale_min
       # analytic_nlin = np.zeros_like(dgds_numeric_g)
@@ -224,7 +231,7 @@ def get_nlin_threshold(
         
       gauss   = np.ones_like(dgds_analytic) * np.sqrt(np.pi) * (LD_eff / (T * np.sqrt(2 * np.pi))
                                                     * np.arcsinh(L / LD_eff))**2
-      nyquist = np.ones_like(dgds_analytic) * 0.406 / y_norm
+      nyquist = np.ones_like(dgds_analytic) * 0.406 / y_norm  # 0.444=4/9 instead of 0.406
       if mode == "max":
         gauss   *= fB_integral_max**2
         nyquist *= fB_integral_max**2
@@ -235,20 +242,19 @@ def get_nlin_threshold(
       plt.plot(dgds_numeric_g * x_norm,
               analytic_nlin * y_norm,
               lw=1,
-              color='red')
+              color=adjust_luminosity('orange', 0.9))
       plt.plot(dgds_analytic * x_norm,
               gauss * y_norm,
-              color='blue',
+              color=color_modes[im],
               lw=1,
               ls=":",
               label=r'$N^>$')
       plt.plot(dgds_analytic * x_norm,
               nyquist * y_norm,
-              color='green',
+              color=color_modes[im],
               ls="--",
               lw=1,
               label='Marco')
-
       lowest_dgd = 0.0
       lw = 1
       ss = 20
@@ -261,7 +267,7 @@ def get_nlin_threshold(
           plt.scatter(dgds_numeric_g * x_norm,
                       partial_B2g * y_norm,
                       label='Gauss.' + str(gvd),
-                      color="blue",
+                      color=color_modes[im],
                       marker="x",
                       s=ss,
                       lw=lw
@@ -269,7 +275,7 @@ def get_nlin_threshold(
           plt.scatter(dgds_numeric_n * x_norm,
                       partial_B2n * y_norm,
                       label='Nyq.' + str(gvd),
-                      color="green",
+                      color=color_modes[im],
                       marker="*",
                       s=ss,
                       lw=lw
@@ -281,6 +287,7 @@ def get_nlin_threshold(
       plt.yscale('log')
       ymin, ymax = plt.ylim()
       plt.ylim(ymin, 1.0)
+      plt.ylim([0.5e-3, 0.15])
       plt.xscale('log')
       plt.xlabel(r'$L_W/L$')
       plt.ylabel(r'$\mathcal{N} \, T^2 / L^2$')
@@ -366,7 +373,6 @@ def get_nlin_threshold(
           plt.ylabel(r'$\varepsilon$')
           plt.tight_layout()
           plt.savefig(f"media/2-error.pdf", dpi=dpi)
-
 
 def get_fig2(recompute=False):
     return get_nlin_threshold(recompute=recompute, use_fB=False)

@@ -7,10 +7,6 @@ Generates figs:
 - Statistics of channels over DGD
 - NLIN thresholding and approximation
 
-TODO: 
-
-- Final computation of the noise including the fB
-
 """
 import pynlin.fiber
 from scripts.modules.time_integrals import do_time_integrals
@@ -57,7 +53,7 @@ l_freq = 3e8 / l_limit
 delta = (s_freq - l_freq) * 1e-12
 avg = ((s_freq + l_freq) * 1e-12 / 2)
 
-fig_to_generate = [3, 4]
+fig_to_generate = [2]
 if -1 in fig_to_generate:
   plot_dispersion_analysis(fiber, 
                     wdm, 
@@ -71,10 +67,7 @@ if 1 in fig_to_generate:
                     recompute=True)
 
 if 2 in fig_to_generate:
-  get_fig2_raman(fiber, 
-                 wdm, 
-                 cf,
-                 recompute=True)
+  get_fig2_raman(recompute=False)
 
 if 3 in fig_to_generate:
   noise_plot(dgd_threshold=3e-15, 

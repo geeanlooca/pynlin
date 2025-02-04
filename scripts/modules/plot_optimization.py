@@ -3,7 +3,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.cm import viridis
 from pynlin.utils import watt2dBm
+import matplotlib.colors as mcolors
 
+def adjust_luminosity(color, factor):
+    rgb = np.array(mcolors.to_rgb(color))  # Convert to RGB
+    return np.clip(rgb * factor, 0, 1)  # Scale and clip values
 
 def plot_profiles(signal_wavelengths,
                   signal_solution,
@@ -28,8 +32,8 @@ def plot_profiles(signal_wavelengths,
         #   print(f"got data without ASE.")
     
 
-    plt.plot(z_plot, watt2dBm(np.max(signal_solution, axis=(1, 2))), color="cyan",    lw = 3, ls ="-.")
-    plt.plot(z_plot, watt2dBm(np.min(signal_solution, axis=(1, 2))), color="magenta", lw = 3, ls ="-.")
+    plt.plot(z_plot, watt2dBm(np.max(signal_solution, axis=(1, 2))), color=adjust_luminosity("cyan", 0.8),    lw = 3, ls ="-.")
+    plt.plot(z_plot, watt2dBm(np.min(signal_solution, axis=(1, 2))), color=adjust_luminosity("magenta", 0.8), lw = 3, ls ="-.")
     pass
     plt.ylabel(r"$P$ [dBm]")
     plt.xlabel(r"$z$ [km]")
