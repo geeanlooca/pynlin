@@ -209,9 +209,10 @@ if __name__ == "__main__":
     # Configuration
     recompute   = True
     repropagate = True
+    use_smf = True
     use_avg_oi  = False
     signal_powers = [-5]
-    signal_powers = [0, -5, 10]
+    signal_powers = [-2]
     # -10 -> true
     # -5  -> true OI
     # 0   -> true OI
@@ -220,7 +221,10 @@ if __name__ == "__main__":
     oi_avg = np.load('results/oi_avg.npy')
    
     # prepare the definitions of fiber and wdm
-    cf = cfg.load_toml_to_struct("./input/smf.toml")
+    if use_smf:
+      cf = cfg.load_toml_to_struct("./input/smf.toml")
+    else:
+      cf = cfg.load_toml_to_struct("./input/mmf.toml")
     num_original_modes = oi_avg[0].shape[0]
     matrix_avg = oi_avg
     matrix_zeros = np.tile(np.zeros((num_original_modes, num_original_modes))[
@@ -247,7 +251,11 @@ if __name__ == "__main__":
     for signal_power in signal_powers:
         cf.launch_power = signal_power
         cfg.save_struct_to_toml("./input/config.toml", cf)
-        output_file = f"results/ct_solution{signal_power}_gain_{cf.raman_gain}_SMF.npy"
+        if use_smf:
+          agg = "_SMF"
+        else:
+          agg=""
+        output_file = f"results/ct_solution{signal_power}_gain_{cf.raman_gain}"+agg+".npy"
   
         signal_wavelengths = wdm.wavelength_grid()
         
@@ -278,7 +286,7 @@ if __name__ == "__main__":
         else:
             print(f"File {output_file} already exists. Loading data...")
         
-        variables_dict = np.load(output_file, allow_pickle=True).item()        
+        variables_dict = np.load(output_file, allow_pickle=True).item() 
         if repropagate:
           repropagate_numpy(
             fiber              = fiber,

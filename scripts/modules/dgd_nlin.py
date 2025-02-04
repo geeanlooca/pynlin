@@ -32,18 +32,15 @@ def get_nlin(cf,
   kappa /= kappa[0, 0]
   
   if cf.n_modes == 1:
-    print("WARN: not doing the right thing for SMF fB")
-    signal_powers = np.load("results/signal_power.npy").repeat(4, axis=1) 
+    solutions = np.load("results/ct_solution-2_gain_0.0_SMF.npy", allow_pickle=True).item()
   else:
     solutions = np.load("results/ct_solution-5_gain_0.0.npy", allow_pickle=True).item()
-    signal_powers = solutions['signal_sol']
-    
+  
+  signal_powers = solutions['signal_sol']  
   signal_powers_swp = np.swapaxes(signal_powers, 1, 2)
   assert(cf.n_modes == signal_powers_swp.shape[1])
   assert(cf.n_channels == signal_powers_swp.shape[2])
   fB = signal_powers_swp / signal_powers_swp[0]
-  print(fB.shape)
-  # exit()
   z_axis = np.linspace(0, cf.fiber_length, len(fB))
   dz = z_axis[1] - z_axis[0]
   # coeffs = np.polyfit(z_axis, fB, 6)
