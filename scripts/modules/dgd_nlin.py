@@ -25,18 +25,22 @@ def get_nlin_prefactor(cf):
 def get_nlin(cf, 
              dgd_threshold = 3e-15, 
              use_kappa = False, 
-             use_fB = False):
+             use_fB = False,
+             use_x_mode_interactions = True):
   oi_fit = np.load('results/oi_fit.npy')
   print("WARN: the kappa for the LP01-LP01 should be 1.0, but it is not.") 
   kappa = np.loadtxt('input/kappa.csv', delimiter=',')
   kappa /= kappa[0, 0]
-  
+  if not use_x_mode_interactions:
+    switchoff_matrix = np.eye(cf.n_modes)
+    kappa = np.multiply(kappa, switchoff_matrix) # Hadamard product
+
   if cf.n_modes == 1:
     solutions = np.load("results/ct_solution-2_gain_0.0_SMF.npy", allow_pickle=True).item()
   else:
     solutions = np.load("results/ct_solution-5_gain_0.0.npy", allow_pickle=True).item()
   
-  signal_powers = solutions['signal_sol']  
+  signal_powers = solutions['signal_sol'] 
   signal_powers_swp = np.swapaxes(signal_powers, 1, 2)
   assert(cf.n_modes == signal_powers_swp.shape[1])
   assert(cf.n_channels == signal_powers_swp.shape[2])
@@ -120,8 +124,11 @@ def get_nlin(cf,
           weighted_nlin = np.matmul(kappa, pair_noise(np.abs(beta1 - beta1[i, j])))
           # print(weighted_nlin.shape)
           nlin[i, j] = np.sum(weighted_nlin[i])
-        else: 
-          nlin[i, j] = np.sum(pair_noise(np.abs(beta1 - beta1[i, j])))
+        elif not use_x_mode_interactions:
+            weighted_nlin = np.matmul(switchoff_matrix, pair_noise(np.abs(beta1 - beta1[i, j])))
+            nlin[i, j] = np.sum(weighted_nlin[i])
+        else:
+            nlin[i, j] = np.sum(pair_noise(np.abs(beta1 - beta1[i, j])))
   return nlin
 
 
@@ -129,7 +136,8 @@ def noise_plot(dgd_threshold = 3e-15,
                use_kappa = False, 
                use_smf = False, 
                use_fB = False,
-               use_dBm_scale = False):
+               use_dBm_scale = False,
+               use_plot_without_x_mode = True):
   formatter = ScalarFormatter()
   formatter.set_scientific(True)
   formatter.set_powerlimits([0, 0])
@@ -162,11 +170,18 @@ def noise_plot(dgd_threshold = 3e-15,
   nlin_mmf = get_nlin(cf_mmf, 
                       dgd_threshold=dgd_threshold, 
                       use_kappa=use_kappa,
-                      use_fB=use_fB)
+                      use_fB=use_fB,
+                      use_x_mode_interactions=True)
+  nlin_mmf_noninteracting = get_nlin(cf_mmf, 
+                      dgd_threshold=dgd_threshold, 
+                      use_kappa=use_kappa,
+                      use_fB=use_fB,
+                      use_x_mode_interactions=False)
   nlin_smf = get_nlin(cf_smf, 
                       dgd_threshold=dgd_threshold, 
                       use_kappa=False, 
-                      use_fB=use_fB)
+                      use_fB=use_fB,
+                      use_x_mode_interactions=True)
   # for each channel, we compute the total number of collisions that
   # needs to be computed for evaluating the total noise on that channel.
   T = 1 / cf_mmf.baud_rate
@@ -183,23 +198,30 @@ def noise_plot(dgd_threshold = 3e-15,
     plot_function = plt.plot
     y_function = lambda x: watt2dBm(x * nlin_prefactor)
   else:
-    ylabel = r'$\mathrm{NLIN} \; [\mathrm{km}^2/\mathrm{ps}^{2}]$'
+    ylabel = r'$\sum\limits_{B\neq A}\mathcal{N}_{AB} \quad [\mathrm{km}^2/\mathrm{ps}^{2}]$'
     plot_function = plt.semilogy
     y_function = lambda x: x * 1e-30
     
   plt.clf()
+  lw = 1.4
   plt.figure(figsize=(3.6, 3.2))
   for i in range(cf_mmf.n_modes):
       plot_function(freqs_mmf * 1e-12, 
                    y_function(nlin_mmf[i, :]),
-                   lw=1.2,
+                   lw=lw,
                    color = colors[i],
                    ls=linestyles[i],
                    label=labels[i])
+      if use_plot_without_x_mode:
+        plot_function(freqs_mmf * 1e-12,
+                      y_function(nlin_mmf_noninteracting[i, :]),
+                      lw=lw,
+                      color = colors[i],
+                      ls='-.')
   if use_smf:
     plot_function(freqs_smf * 1e-12, 
                 y_function(nlin_smf[0, :]), 
-                lw=1.2,
+                lw=lw,
                 color = colors[-1],
                 ls=linestyles[-1],
                 label=labels[-1])
