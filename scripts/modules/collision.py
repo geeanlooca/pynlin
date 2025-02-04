@@ -89,7 +89,7 @@ def plot_illustrative(fiber, wdm, cf, recompute=False):
       colors  = ["grey", "blue"]
       markers = ["x", "o"]
       marker_sizes = [7, 3]
-      lw = 0.5
+      lw = 1.0
       # plotting the peaks
       for ip, (peak, z_peak) in enumerate(zip(peaks, z_peaks)):
         for ic in range(len(cases_peaks)):

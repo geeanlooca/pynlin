@@ -119,7 +119,7 @@ def ct_solver(fiber,
         [  8.71186  ]],      dtype=np.float32) - 10
       initial_pump_powers = initial_pump_powers.reshape((6,)) 
     # to subtract to the pumps in the 0 dBm launch power setup to prevent RK4 blowup
-    if cf.launch_power == 0:
+    if cf.launch_power > -5:
         initial_pump_powers = initial_pump_powers - 3
     print(initial_pump_wavelengths.shape)
     print(initial_pump_powers.shape)
@@ -207,9 +207,9 @@ def repropagate_numpy(fiber,
 
 if __name__ == "__main__":    
     # Configuration
-    recompute   = True
+    recompute   = False
     repropagate = True
-    use_smf = True
+    use_smf     = False
     use_avg_oi  = False
     signal_powers = [-5]
     signal_powers = [-2]
@@ -260,8 +260,8 @@ if __name__ == "__main__":
         signal_wavelengths = wdm.wavelength_grid()
         
         if not os.path.exists(output_file) or recompute:
-            # raise("DO NOT OVERWRITE!!")
-            assert(cf.n_modes == 1)
+            raise("DO NOT OVERWRITE!!")
+            # assert(cf.n_modes == 1)
             pump_sol, signal_sol, ase_sol, pump_wavelengths, pump_powers = ct_solver(
                 fiber,
                 wdm, 

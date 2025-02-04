@@ -13,7 +13,7 @@ def plot_profiles(signal_wavelengths,
                   pump_powers,
                   cf: Config):
     plt.clf()
-    plt.figure(figsize=(4, 3))
+    plt.figure(figsize=(2.5, 2))
     cmap = viridis
     z_plot = np.linspace(0, cf.fiber_length, len(pump_solution[:, 0, 0])) * 1e-3
     # lss = ["-", "--", "-.", ":", "-"]
@@ -21,11 +21,15 @@ def plot_profiles(signal_wavelengths,
     for i in range(cf.n_modes):
         plt.plot(z_plot,
                  watt2dBm(signal_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.3)
-        try:
-          plt.plot(z_plot,
-                 watt2dBm(ase_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.7, ls="-")
-        except:
-          print(f"got data without ASE.")
+        # try:
+        #   plt.plot(z_plot,
+        #          watt2dBm(ase_solution[:, :, i]), color=cmap(i / cf.n_modes + 0.2), alpha=0.7, ls="-")
+        # except:
+        #   print(f"got data without ASE.")
+    
+
+    plt.plot(z_plot, watt2dBm(np.max(signal_solution, axis=(1, 2))), color="cyan",    lw = 3, ls ="-.")
+    plt.plot(z_plot, watt2dBm(np.min(signal_solution, axis=(1, 2))), color="magenta", lw = 3, ls ="-.")
     pass
     plt.ylabel(r"$P$ [dBm]")
     plt.xlabel(r"$z$ [km]")
